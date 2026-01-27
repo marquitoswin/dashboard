@@ -54,13 +54,17 @@
         window.INITIAL_DATA = {
             "home": [
                 { "id": "w-clock", "type": "widget-clock", "title": "Reloj", "x": 20, "y": 20, "w": 210, "h": 210, "data": { "isAnalog": false } },
-                { "id": "w-note", "type": "widget-note", "title": "Notas", "x": 20, "y": 240, "w": 210, "h": 210, "data": { "content": "No olvidar revisar el dashboard..." } },
-                { "id": "w-todo", "type": "widget-todo", "title": "Tareas", "x": 20, "y": 460, "w": 210, "h": 250, "data": { "tasks": [{ "id": 1, "text": "Configurar GitHub Pages", "done": false }] } },
+                { "id": "w-note", "type": "widget-note", "title": "Notas", "x": 20, "y": 240, "w": 210, "h": 210, "data": { "content": "Cosas de casa..." } },
+                { "id": "w-todo", "type": "widget-todo", "title": "Tareas", "x": 20, "y": 460, "w": 210, "h": 250, "data": { "tasks": [{ "id": 1, "text": "Hacer la compra", "done": false }] } },
                 { "id": "w-calendar-home", "type": "widget-calendar", "title": "Google Calendar", "x": 250, "y": 20, "w": 400, "h": 400, "data": { "url": "https://calendar.google.com/calendar/embed?src=marquitoswin%40gmail.com&ctz=Europe%2FMadrid", "zoom": 1.2 } },
                 { "id": "w-weather", "type": "widget-weather", "title": "MADRID", "x": 670, "y": 20, "w": 260, "h": 400, "data": {} }
             ],
             "work": [
-                { "id": "w-clock-w", "type": "widget-clock", "title": "Reloj", "x": 20, "y": 20, "w": 210, "h": 210, "data": { "isAnalog": false } }
+                { "id": "w-clock-w", "type": "widget-clock", "title": "Reloj", "x": 20, "y": 20, "w": 210, "h": 210, "data": { "isAnalog": false } },
+                { "id": "w-note-w", "type": "widget-note", "title": "Notas Trabajo", "x": 20, "y": 240, "w": 210, "h": 210, "data": { "content": "Reunión a las 10:00..." } },
+                { "id": "w-todo-w", "type": "widget-todo", "title": "Tareas Trabajo", "x": 20, "y": 460, "w": 210, "h": 250, "data": { "tasks": [{ "id": 1, "text": "Enviar informe mensual", "done": false }] } },
+                { "id": "w-calendar-w", "type": "widget-calendar", "title": "Outlook Calendar", "x": 250, "y": 20, "w": 400, "h": 400, "data": { "url": "https://calendar.google.com/calendar/embed?src=en.spain%23holiday%40group.v.calendar.google.com&ctz=Europe%2FMadrid", "zoom": 1.2 } },
+                { "id": "w-weather-w", "type": "widget-weather", "title": "MADRID", "x": 670, "y": 20, "w": 260, "h": 400, "data": {} }
             ]
         };
         window.INITIAL_PREFS = {"bgType":"dynamic","bgImage":"","bgColor":"#0f172a","theme":"dark","searchEngine":"google"};
@@ -89,8 +93,8 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         
-        // --- CAMBIO CLAVE: ID v3 para reiniciar la base de datos limpia ---
-        const DOC_ID = "main_dashboard_v3"; 
+        // --- USAMOS LA BASE DE DATOS v4 (Misma que antes para no perder datos) ---
+        const DOC_ID = "main_dashboard_v4"; 
 
         // --- Utilidades ---
         const MIN_SIZE = 100; 
@@ -274,7 +278,7 @@
 
             useEffect(() => {
                 setIsSyncing(true);
-                // Conectando a DOC_ID = "main_dashboard_v3" para empezar de cero limpio
+                // Conectando a DOC_ID = "main_dashboard_v4"
                 const unsub = onSnapshot(doc(db, "data", DOC_ID), (docSnap) => {
                     setIsConnected(true); setIsSyncing(false);
                     if (docSnap.exists()) {
@@ -494,22 +498,31 @@
                 <div className="min-h-screen w-full transition-all duration-1000 bg-transition overflow-hidden" style={currentBgStyle}>
                     <div className="fixed inset-0 bg-black/10 dark:bg-black/40 pointer-events-none" />
                     
+                    {/* Header Responsivo Actualizado (v1.51) */}
                     <header className="fixed top-0 left-0 right-0 z-[150] px-4 py-2 flex items-center justify-between bg-white/60 dark:bg-black/70 backdrop-blur-xl border-b border-white/10 h-14">
-                        <div className="flex items-center gap-3">
-                            <button onClick={() => setCurrentFolderId(null)} className="font-black text-slate-800 dark:text-white uppercase tracking-tighter mr-2 hover:opacity-70 transition-opacity text-xl flex items-center gap-2" style={{ fontFamily: "'Georgia', serif" }}>
+                        
+                        {/* LEFT SIDE: Flex-1 para que ocupe espacio pero con min-w-0 para permitir shrink */}
+                        <div className="flex items-center gap-3 flex-1 min-w-0 mr-2">
+                            <button onClick={() => setCurrentFolderId(null)} className="font-black text-slate-800 dark:text-white uppercase tracking-tighter mr-2 hover:opacity-70 transition-opacity text-xl flex items-center gap-2 shrink-0" style={{ fontFamily: "'Georgia', serif" }}>
                                 DASHBOARD
                                 <div className="text-[9px] flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded-full font-sans tracking-normal opacity-50">
                                     {isConnected ? <Wifi size={10} className="text-green-400" /> : <WifiOff size={10} className="text-red-400" />}
                                     {isSyncing ? "GUARDANDO..." : "EN LÍNEA"}
                                 </div>
                             </button>
-                            <div className="flex bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-xl">
+                            
+                            {/* Mode Switcher - Shrinkable if needed */}
+                            <div className="flex bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-xl shrink-0">
                                 <button onClick={() => setMode('home')} className={`px-4 py-1.5 text-base font-black uppercase rounded-lg transition-all ${mode === 'home' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>Casa</button>
                                 <button onClick={() => setMode('work')} className={`px-4 py-1.5 text-base font-black uppercase rounded-lg transition-all ${mode === 'work' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>Trabajo</button>
                             </div>
-                            <button onClick={handleExportHtml} className="p-2 px-4 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-lg active:scale-95 transition-all ml-1"><Download size={16} /><span className="text-sm font-black uppercase hidden sm:inline">Exportar HTML</span></button>
-                            <form onSubmit={(e) => { e.preventDefault(); window.open(`${curSearch.url}?${curSearch.param}=${e.target.q.value}`, '_blank'); e.target.reset(); }} className="max-w-xs md:w-80 relative flex items-center bg-white/30 dark:bg-black/20 backdrop-blur-md rounded-full px-1 border border-white/20 ml-4 focus-within:border-blue-500 transition-colors">
-                                <button type="button" onClick={() => setActiveMenu(activeMenu === 'search' ? null : 'search')} className={`p-2 rounded-full hover:bg-white/20 ${curSearch.color}`}><curSearch.icon size={18} /></button>
+
+                            {/* Export Button - Oculto en pantallas menores a XL (Laptops pequeñas) */}
+                            <button onClick={handleExportHtml} className="p-2 px-4 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-lg active:scale-95 transition-all ml-1 shrink-0"><Download size={16} /><span className="text-sm font-black uppercase hidden xl:inline">Exportar HTML</span></button>
+
+                            {/* Search Bar - Width Flexible para portátiles */}
+                            <form onSubmit={(e) => { e.preventDefault(); window.open(`${curSearch.url}?${curSearch.param}=${e.target.q.value}`, '_blank'); e.target.reset(); }} className="w-full max-w-[180px] md:max-w-xs xl:max-w-sm relative flex items-center bg-white/30 dark:bg-black/20 backdrop-blur-md rounded-full px-1 border border-white/20 ml-4 focus-within:border-blue-500 transition-colors shrink">
+                                <button type="button" onClick={() => setActiveMenu(activeMenu === 'search' ? null : 'search')} className={`p-2 rounded-full hover:bg-white/20 ${curSearch.color} shrink-0`}><curSearch.icon size={18} /></button>
                                 {activeMenu === 'search' && (
                                     <div className="absolute top-full left-0 mt-2 bg-white dark:bg-slate-900 shadow-2xl rounded-2xl overflow-hidden min-w-[140px] z-[160]">
                                         {Object.entries(SEARCH_ENGINES).map(([k, eng]) => (
@@ -517,16 +530,19 @@
                                         ))}
                                     </div>
                                 )}
-                                <input type="text" name="q" placeholder={`Buscar...`} className="bg-transparent border-none outline-none px-2 py-1.5 text-base font-bold uppercase tracking-tighter flex-1 dark:text-white placeholder:text-slate-500" />
+                                <input type="text" name="q" placeholder={`Buscar...`} className="bg-transparent border-none outline-none px-2 py-1.5 text-base font-bold uppercase tracking-tighter flex-1 dark:text-white placeholder:text-slate-500 min-w-0" />
                             </form>
-                            <div className="flex items-center gap-1 ml-4 border-l border-white/10 pl-4">
-                                <button onClick={() => addItem('shortcut')} className="flex items-center gap-2 p-2 px-3 rounded-full hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition-colors" title="Añadir URL"><LinkIcon size={16}/><span className="text-sm font-black uppercase hidden lg:inline">URL</span></button>
-                                <button onClick={() => addItem('cloud-doc')} className="flex items-center gap-2 p-2 px-3 rounded-full hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 transition-colors" title="Añadir Documento"><FileText size={16}/><span className="text-sm font-black uppercase hidden lg:inline">Documento</span></button>
-                                <button onClick={() => addItem('folder')} className="flex items-center gap-2 p-2 px-3 rounded-full hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 transition-colors" title="Añadir Carpeta"><FolderIcon size={16}/><span className="text-sm font-black uppercase hidden lg:inline">Carpeta</span></button>
+
+                            {/* Add Buttons - Text hidden on Laptops (visible on XL screens) */}
+                            <div className="flex items-center gap-1 ml-4 border-l border-white/10 pl-4 shrink-0">
+                                <button onClick={() => addItem('shortcut')} className="flex items-center gap-2 p-2 px-3 rounded-full hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition-colors" title="Añadir URL"><LinkIcon size={16}/><span className="text-sm font-black uppercase hidden xl:inline">URL</span></button>
+                                <button onClick={() => addItem('cloud-doc')} className="flex items-center gap-2 p-2 px-3 rounded-full hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 transition-colors" title="Añadir Documento"><FileText size={16}/><span className="text-sm font-black uppercase hidden xl:inline">Documento</span></button>
+                                <button onClick={() => addItem('folder')} className="flex items-center gap-2 p-2 px-3 rounded-full hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 transition-colors" title="Añadir Carpeta"><FolderIcon size={16}/><span className="text-sm font-black uppercase hidden xl:inline">Carpeta</span></button>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        {/* RIGHT SIDE: Fixed (no shrink) para que nunca desaparezcan */}
+                        <div className="flex items-center gap-2 shrink-0">
                             <button onClick={() => setActiveMenu(activeMenu === 'bg' ? null : 'bg')} className="p-2.5 rounded-full hover:bg-white/20 text-slate-600 dark:text-slate-300" title="Fondo"><Wallpaper size={20} /></button>
                             {activeMenu === 'bg' && (
                                 <div className="absolute top-full right-44 mt-2 bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 rounded-2xl p-3 min-w-[220px] z-[160] space-y-3">
