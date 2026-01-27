@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Dashboard Cloud</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script id="tailwind-config">
@@ -48,33 +47,30 @@
 </head>
 <body>
     <div id="root"></div>
-    
     <script id="initial-setup">
-        // Configuración inicial COMPLETA
-        window.INITIAL_DATA = {
-            "home": [
-                { "id": "w-clock", "type": "widget-clock", "title": "Reloj", "x": 20, "y": 20, "w": 210, "h": 210, "data": { "isAnalog": false } },
-                { "id": "w-note", "type": "widget-note", "title": "Notas", "x": 20, "y": 240, "w": 210, "h": 210, "data": { "content": "Cosas de casa..." } },
-                { "id": "w-todo", "type": "widget-todo", "title": "Tareas", "x": 20, "y": 460, "w": 210, "h": 250, "data": { "tasks": [{ "id": 1, "text": "Hacer la compra", "done": false }] } },
-                { "id": "w-calendar-home", "type": "widget-calendar", "title": "Google Calendar", "x": 250, "y": 20, "w": 400, "h": 400, "data": { "url": "https://calendar.google.com/calendar/embed?src=marquitoswin%40gmail.com&ctz=Europe%2FMadrid", "zoom": 1.2 } },
-                { "id": "w-weather", "type": "widget-weather", "title": "MADRID", "x": 670, "y": 20, "w": 260, "h": 400, "data": {} }
-            ],
-            "work": [
-                { "id": "w-clock-w", "type": "widget-clock", "title": "Reloj", "x": 20, "y": 20, "w": 210, "h": 210, "data": { "isAnalog": false } },
-                { "id": "w-note-w", "type": "widget-note", "title": "Notas Trabajo", "x": 20, "y": 240, "w": 210, "h": 210, "data": { "content": "Reunión a las 10:00..." } },
-                { "id": "w-todo-w", "type": "widget-todo", "title": "Tareas Trabajo", "x": 20, "y": 460, "w": 210, "h": 250, "data": { "tasks": [{ "id": 1, "text": "Enviar informe mensual", "done": false }] } },
-                { "id": "w-calendar-w", "type": "widget-calendar", "title": "Outlook Calendar", "x": 250, "y": 20, "w": 400, "h": 400, "data": { "url": "https://calendar.google.com/calendar/embed?src=en.spain%23holiday%40group.v.calendar.google.com&ctz=Europe%2FMadrid", "zoom": 1.2 } },
-                { "id": "w-weather-w", "type": "widget-weather", "title": "MADRID", "x": 670, "y": 20, "w": 260, "h": 400, "data": {} }
-            ]
-        };
-        window.INITIAL_PREFS = {"bgType":"dynamic","bgImage":"","bgColor":"#0f172a","theme":"dark","searchEngine":"google"};
+       window.INITIAL_DATA = {
+           "home": [
+               { "id": "w-clock", "type": "widget-clock", "title": "Reloj", "x": 20, "y": 20, "w": 210, "h": 210, "data": { "isAnalog": false } },
+               { "id": "w-note", "type": "widget-note", "title": "Notas", "x": 20, "y": 240, "w": 210, "h": 210, "data": { "content": "Cosas de casa..." } },
+               { "id": "w-todo", "type": "widget-todo", "title": "Tareas", "x": 20, "y": 460, "w": 210, "h": 250, "data": { "tasks": [{ "id": 1, "text": "Hacer la compra", "done": false }] } },
+               { "id": "w-calendar-home", "type": "widget-calendar", "title": "Google Calendar", "x": 250, "y": 20, "w": 400, "h": 400, "data": { "url": "https://calendar.google.com/calendar/embed?src=marquitoswin%40gmail.com&ctz=Europe%2FMadrid", "zoom": 1.2 } },
+               { "id": "w-weather", "type": "widget-weather", "title": "MADRID", "x": 670, "y": 20, "w": 260, "h": 400, "data": {} }
+           ],
+           "work": [
+               { "id": "w-clock-w", "type": "widget-clock", "title": "Reloj", "x": 20, "y": 20, "w": 210, "h": 210, "data": { "isAnalog": false } },
+               { "id": "w-note-w", "type": "widget-note", "title": "Notas Trabajo", "x": 20, "y": 240, "w": 210, "h": 210, "data": { "content": "Reunión a las 10:00..." } },
+               { "id": "w-todo-w", "type": "widget-todo", "title": "Tareas Trabajo", "x": 20, "y": 460, "w": 210, "h": 250, "data": { "tasks": [{ "id": 1, "text": "Enviar informe mensual", "done": false }] } },
+               { "id": "w-calendar-w", "type": "widget-calendar", "title": "Outlook Calendar", "x": 250, "y": 20, "w": 400, "h": 400, "data": { "url": "https://calendar.google.com/calendar/embed?src=en.spain%23holiday%40group.v.calendar.google.com&ctz=Europe%2FMadrid", "zoom": 1.2 } },
+               { "id": "w-weather-w", "type": "widget-weather", "title": "MADRID", "x": 670, "y": 20, "w": 260, "h": 400, "data": {} }
+           ]
+       };
+       window.INITIAL_PREFS = {"bgType":"dynamic","bgImage":"","bgColor":"#0f172a","theme":"dark","searchEngine":"google"};
     </script>
-
     <script type="text/babel" data-type="module" id="app-code">
         import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
         import { createRoot } from 'react-dom/client';
         import { 
-            Plus, Settings, X, Check, Trash2, Link as LinkIcon, Folder as FolderIcon, Cloud, Clock, Edit2, Search, Briefcase, Home, Image as ImageIcon, Loader2, Download, Upload, Save, Calendar as CalendarIcon, RotateCcw, Play, Sparkles, MessageSquare, Database, Palette, Wallpaper, FileText, FileSpreadsheet, FilePieChart, HardDrive, Grip, Type, ArrowLeft, MapPin, Move, ShoppingCart, Music, Mail, Gamepad2, Landmark, BookOpen, Utensils, ShoppingBag, Camera, Film, Tv, Sun, CloudSun, CloudRain, Wifi, WifiOff, CloudCog, ArrowUpCircle
+            Plus, Settings, X, Check, Trash2, Link as LinkIcon, Folder as FolderIcon, Cloud, Clock, Edit2, Search, Briefcase, Home, Image as ImageIcon, Loader2, Download, Upload, Save, Calendar as CalendarIcon, RotateCcw, Play, Sparkles, MessageSquare, Database, Palette, Wallpaper, FileText, FileSpreadsheet, FilePieChart, HardDrive, Grip, Type, ArrowLeft, MapPin, Move, ShoppingCart, Music, Mail, Gamepad2, Landmark, BookOpen, Utensils, ShoppingBag, Camera, Film, Tv, Sun, CloudSun, CloudRain, Wifi, WifiOff, CloudCog, ArrowUpCircle, CloudLightning, Globe, ExternalLink, CheckSquare
         } from 'lucide-react';
 
         // --- FIREBASE CONFIGURATION ---
@@ -93,8 +89,8 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         
-        // --- USAMOS LA BASE DE DATOS v4 (Misma que antes para no perder datos) ---
-        const DOC_ID = "main_dashboard_v4"; 
+        // --- DB Version ---
+        const DOC_ID = "main_dashboard_v7"; 
 
         // --- Utilidades ---
         const MIN_SIZE = 100; 
@@ -136,6 +132,111 @@
             if (t.includes('COMPRAS') || t.includes('SHOP') || t.includes('TIENDA')) return { icon: ShoppingBag, color: 'text-pink-500' };
             if (t.includes('TV') || t.includes('SERIES') || t.includes('NETFLIX')) return { icon: Tv, color: 'text-red-600' };
             return { icon: FolderIcon, color: 'text-amber-500' }; 
+        };
+
+        // --- Componente Weather Widget ---
+        const WeatherWidget = ({ item, updateItems, items }) => {
+            const [data, setData] = useState(null);
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState(null);
+
+            const fetchWeather = async (city) => {
+                setLoading(true); setError(null);
+                try {
+                    const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=es&format=json`);
+                    if (!geoRes.ok) throw new Error("Error geo");
+                    const geoJson = await geoRes.json();
+                    
+                    if (!geoJson.results || geoJson.results.length === 0) throw new Error("Ciudad no encontrada");
+                    const { latitude, longitude, name } = geoJson.results[0];
+
+                    const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`);
+                    if (!weatherRes.ok) throw new Error("Error clima");
+                    const weatherJson = await weatherRes.json();
+
+                    if (!weatherJson.current || !weatherJson.daily) throw new Error("Datos no disponibles");
+
+                    setData({
+                        temp: Math.round(weatherJson.current.temperature_2m),
+                        code: weatherJson.current.weather_code,
+                        daily: weatherJson.daily,
+                        name: name.toUpperCase() 
+                    });
+                } catch (e) { setError("Error"); } finally { setLoading(false); }
+            };
+
+            useEffect(() => { if (item.title) fetchWeather(item.title); }, [item.title]);
+
+            const getWeatherInfo = (code) => {
+                if (code === 0) return { icon: Sun, label: "Despejado", color: "text-amber-500" };
+                if (code <= 3) return { icon: CloudSun, label: "Nublado", color: "text-blue-400" };
+                if (code <= 48) return { icon: Cloud, label: "Niebla", color: "text-slate-400" };
+                if (code <= 67) return { icon: CloudRain, label: "Lluvia", color: "text-indigo-400" };
+                if (code <= 77) return { icon: Cloud, label: "Nieve", color: "text-cyan-400" };
+                if (code <= 82) return { icon: CloudRain, label: "Lluvia fuerte", color: "text-blue-600" };
+                if (code <= 86) return { icon: Cloud, label: "Nieve", color: "text-cyan-500" };
+                if (code <= 99) return { icon: CloudLightning, label: "Tormenta", color: "text-purple-500" };
+                return { icon: Sun, label: "Despejado", color: "text-amber-500" };
+            };
+
+            if (loading) return <div className="h-full flex items-center justify-center text-xs opacity-50"><Loader2 className="animate-spin mr-2" /> Cargando...</div>;
+            if (error) return <div className="h-full flex items-center justify-center text-xs opacity-50 text-red-400">{error}</div>;
+            if (!data) return null;
+
+            const currentInfo = getWeatherInfo(data.code);
+            const daysMap = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
+
+            return (
+                <div className="flex flex-col h-full p-5 select-none cursor-pointer overflow-hidden rounded-2xl relative">
+                    <div className="flex items-center justify-between z-10">
+                        <div className="flex items-center gap-1.5 opacity-60 hover:opacity-100 transition-opacity cursor-pointer group" onClick={(e) => {
+                            e.stopPropagation();
+                            const newCity = prompt("Cambiar ciudad:", item.title);
+                            if(newCity) updateItems(items.map(i => i.id === item.id ? {...i, title: newCity.toUpperCase()} : i));
+                        }}>
+                            <MapPin size={12} className="text-blue-500 group-hover:scale-110 transition-transform" />
+                            <span className="text-[13px] font-black uppercase tracking-widest truncate max-w-[120px]">{item.title}</span>
+                        </div>
+                        <span className="text-[10px] font-black opacity-30 uppercase bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded-full">Ahora</span>
+                    </div>
+
+                    <div className="flex-1 flex items-center justify-between py-2 z-10">
+                        <div className="flex flex-col">
+                            <div className="text-4xl font-black tabular-nums tracking-tighter leading-none flex items-start">{data.temp}<span className="text-lg mt-0.5 opacity-40">°C</span></div>
+                            <div className="mt-1 flex items-center gap-1.5">
+                                <span className="text-[11px] font-black uppercase opacity-60 tracking-tight">{currentInfo.label}</span>
+                                <span className="w-1 h-1 bg-blue-500 rounded-full"></span>
+                                <span className="text-[11px] font-black opacity-40">H: {Math.round(data.daily.temperature_2m_max[0])}° L: {Math.round(data.daily.temperature_2m_min[0])}°</span>
+                            </div>
+                        </div>
+                        <div className="relative">
+                            <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full animate-pulse scale-125"></div>
+                            <currentInfo.icon size={44} className={`${currentInfo.color} relative drop-shadow-lg`} />
+                        </div>
+                    </div>
+
+                    <div className="mt-auto flex flex-col pt-3 border-t border-black/5 dark:border-white/10 z-10">
+                        {data.daily.time.slice(1, 6).map((t, i) => {
+                            const [y, m, d] = t.split('-').map(Number);
+                            const dateObj = new Date(y, m - 1, d);
+                            const info = getWeatherInfo(data.daily.weather_code[i+1]);
+                            return (
+                                <div key={i} className="flex items-center justify-between py-0.5 group transition-all">
+                                    <div className="flex items-center gap-1.5 w-16">
+                                        <span className="text-[11px] font-black">{daysMap[dateObj.getDay()]}</span>
+                                        <span className="text-[11px] font-black opacity-50">{d}</span>
+                                    </div>
+                                    <div className="flex-1 flex justify-end gap-3 mr-4">
+                                        <span className="text-[11px] font-black opacity-30 w-7 text-right">{Math.round(data.daily.temperature_2m_min[i+1])}°</span>
+                                        <span className="text-[11px] font-black w-7 text-right">{Math.round(data.daily.temperature_2m_max[i+1])}°</span>
+                                    </div>
+                                    <div className="w-5 flex justify-end"><info.icon size={15} className={`${info.color} drop-shadow-sm`} /></div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
         };
 
         // --- Componentes ---
@@ -266,6 +367,7 @@
             const [currentTime, setCurrentTime] = useState(new Date());
             const [isConnected, setIsConnected] = useState(false);
             const [isSyncing, setIsSyncing] = useState(false);
+            const fileInputRef = useRef(null); // Ref para el input de archivo
 
             useEffect(() => {
                 const interval = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -278,7 +380,6 @@
 
             useEffect(() => {
                 setIsSyncing(true);
-                // Conectando a DOC_ID = "main_dashboard_v4"
                 const unsub = onSnapshot(doc(db, "data", DOC_ID), (docSnap) => {
                     setIsConnected(true); setIsSyncing(false);
                     if (docSnap.exists()) {
@@ -310,21 +411,6 @@
                 root.classList.add(`theme-${preferences.theme}`);
                 if (preferences.theme === 'dark' || preferences.theme === 'mid-dark') root.classList.add('dark');
             }, [preferences.theme]);
-
-            const handleMigrateData = () => {
-                if (!confirm("⚠️ ATENCIÓN: Esto buscará datos antiguos en tu navegador y SOBRESCRIBIRÁ lo que hay en la nube ahora mismo.\n\nÚsalo solo si quieres recuperar tus iconos antiguos.\n\n¿Estás seguro?")) return;
-                try {
-                    const localDataRaw = localStorage.getItem('dashboard-data-v5-pixel');
-                    const localPrefsRaw = localStorage.getItem('dashboard-prefs');
-                    if (!localDataRaw) { alert("❌ No se encontraron datos antiguos."); return; }
-                    const localData = JSON.parse(localDataRaw);
-                    const localPrefs = localPrefsRaw ? JSON.parse(localPrefsRaw) : DEFAULT_PREFS;
-                    setIsSyncing(true);
-                    setDoc(doc(db, "data", DOC_ID), { items: localData, prefs: localPrefs }).then(() => {
-                        alert("✅ ¡ÉXITO! Datos recuperados."); setIsSyncing(false);
-                    }).catch(e => { alert("Error: " + e.message); setIsSyncing(false); });
-                } catch (e) { alert("Error: " + e.message); }
-            };
 
             const currentBgStyle = useMemo(() => {
                 if (preferences.bgType === 'color') return { backgroundColor: preferences.bgColor };
@@ -403,6 +489,45 @@
                     const blob = new Blob([fullHtml], { type: 'text/html' });
                     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Dashboard_v1.56_Cloud.html'; a.click();
                 } catch (e) { alert('Error al exportar: ' + e.message); }
+            };
+
+            const handleImport = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const content = e.target.result;
+                        let importedData = null;
+                        let importedPrefs = null;
+
+                        if (file.name.endsWith('.json')) {
+                            const parsed = JSON.parse(content);
+                            importedData = parsed.items || parsed;
+                            importedPrefs = parsed.prefs;
+                        } else if (file.name.endsWith('.html')) {
+                            const dataMatch = content.match(/window\.INITIAL_DATA\s*=\s*({[\s\S]*?});/);
+                            const prefsMatch = content.match(/window\.INITIAL_PREFS\s*=\s*({[\s\S]*?});/);
+                            
+                            if (dataMatch) importedData = JSON.parse(dataMatch[1]);
+                            if (prefsMatch) importedPrefs = JSON.parse(prefsMatch[1]);
+                        }
+
+                        if (importedData) {
+                            if (confirm("¿Sobreescribir la configuración actual con el archivo importado? Esto actualizará la nube.")) {
+                                setAllData(importedData);
+                                if (importedPrefs) setPreferences(importedPrefs);
+                            }
+                        } else {
+                            alert("No se encontraron datos válidos en el archivo.");
+                        }
+                    } catch (error) {
+                        alert("Error al importar: " + error.message);
+                    }
+                };
+                reader.readAsText(file);
+                event.target.value = ''; 
             };
 
             const [dragState, setDragState] = useState({ isDragging: false, itemId: null, offset: {x:0, y:0} });
@@ -515,6 +640,13 @@
 
                             <button onClick={handleExportHtml} className="p-2 px-4 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-lg active:scale-95 transition-all ml-1 shrink-0"><Download size={16} /><span className="text-sm font-black uppercase hidden xl:inline">Exportar HTML</span></button>
 
+                            {/* Botón de Importar Restaurado */}
+                            <button onClick={() => fileInputRef.current.click()} className="p-2 px-4 rounded-full bg-orange-500 hover:bg-orange-600 text-white flex items-center gap-2 shadow-lg active:scale-95 transition-all ml-1 shrink-0">
+                                <Upload size={16} />
+                                <span className="text-sm font-black uppercase hidden xl:inline">Importar</span>
+                            </button>
+                            <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".html,.json" />
+
                             <form onSubmit={(e) => { e.preventDefault(); window.open(`${curSearch.url}?${curSearch.param}=${e.target.q.value}`, '_blank'); e.target.reset(); }} className="w-full max-w-[180px] md:max-w-xs xl:max-w-sm relative flex items-center bg-white/30 dark:bg-black/20 backdrop-blur-md rounded-full px-1 border border-white/20 ml-4 focus-within:border-blue-500 transition-colors shrink">
                                 <button type="button" onClick={() => setActiveMenu(activeMenu === 'search' ? null : 'search')} className={`p-2 rounded-full hover:bg-white/20 ${curSearch.color} shrink-0`}><curSearch.icon size={18} /></button>
                                 {activeMenu === 'search' && (
@@ -556,11 +688,6 @@
                             )}
                             <button onClick={() => setIsEditing(!isEditing)} className={`p-2 rounded-full transition-all ${isEditing ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-600 dark:text-slate-300 hover:bg-white/20'}`}>{isEditing ? <Check size={20} /> : <Edit2 size={20} />}</button>
                             
-                            {/* BOTÓN MIGRAR */}
-                            <button onClick={handleMigrateData} className="p-2 rounded-full bg-orange-500 text-white shadow-lg hover:bg-orange-600 transition-all flex items-center justify-center" title="IMPORTAR DATOS LOCALES A LA NUBE">
-                                <ArrowUpCircle size={20} />
-                            </button>
-
                             <button onClick={() => setIsSettingsOpen(true)} className="p-2 rounded-full hover:bg-white/20 text-slate-600 dark:text-slate-300"><Settings size={20} /></button>
                         </div>
                     </header>
@@ -615,6 +742,41 @@
                                         </div>
                                     </div>
                                 )}
+                                {item.type === 'widget-iframe' && (
+                                    item.title === 'MICROSOFT TO DO' ? (
+                                        <MSTodoWidget item={item} />
+                                    ) : (
+                                        <div className="flex flex-col h-full w-full bg-white dark:bg-slate-900 relative group/iframe">
+                                            <div className="p-2 border-b bg-slate-50 dark:bg-slate-800 flex items-center justify-between pointer-events-none">
+                                                <div className="flex items-center gap-2">
+                                                    <Globe size={12}/>
+                                                    <span className="text-[10px] font-black uppercase truncate">{item.title}</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <button 
+                                                onClick={() => window.open(item.data.url, '_blank')}
+                                                className="absolute top-1.5 right-1.5 p-1 rounded-md bg-white/50 hover:bg-white dark:bg-black/20 dark:hover:bg-black/50 transition-colors pointer-events-auto z-20"
+                                                title="Abrir en nueva pestaña"
+                                            >
+                                                <ExternalLink size={12} className="text-slate-600 dark:text-slate-300" />
+                                            </button>
+
+                                            <div className="flex-1 relative overflow-hidden bg-white">
+                                                <iframe 
+                                                    src={item.data.url} 
+                                                    className="w-full h-full border-0"
+                                                    loading="lazy"
+                                                    referrerPolicy="no-referrer"
+                                                    sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                                                />
+                                                <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center text-center p-4 bg-slate-100/50 dark:bg-slate-900/50 -z-10">
+                                                    <p className="text-[10px] opacity-50 mb-2">Si no carga el contenido...</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                )}
                                 {item.type === 'widget-note' && (
                                     <div className="flex flex-col h-full p-4">
                                         <div className="flex items-center gap-2 mb-2 opacity-60 pointer-events-none"><Type size={12}/><h3 className="text-[10px] font-black uppercase">{item.title}</h3></div>
@@ -625,68 +787,7 @@
                                 {item.type === 'shortcut' && <ShortcutWidget title={item.title} data={item.data} onNavigate={handleNavigate} />}
                                 {item.type === 'cloud-doc' && <CloudDocWidget title={item.title} data={item.data} onNavigate={handleNavigate} />}
                                 {item.type === 'folder' && <FolderWidget title={item.title} data={item.data} onOpen={() => !dragHasMoved.current && setCurrentFolderId(item.id)} />}
-                                {item.type === 'widget-weather' && (() => {
-                                    const forecast = [
-                                        { day: 'LUN', date: '25', icon: Sun, min: 14, max: 24, color: 'text-amber-500' },
-                                        { day: 'MAR', date: '26', icon: CloudSun, min: 15, max: 22, color: 'text-blue-400' },
-                                        { day: 'MIÉ', date: '27', icon: CloudRain, min: 12, max: 19, color: 'text-indigo-400' },
-                                        { day: 'JUE', date: '28', icon: Cloud, min: 13, max: 21, color: 'text-slate-400' },
-                                        { day: 'VIE', date: '29', icon: Sun, min: 15, max: 25, color: 'text-orange-400' }
-                                    ];
-                                    return (
-                                        <div className="flex flex-col h-full p-5 select-none cursor-pointer overflow-hidden rounded-2xl relative">
-                                            <div className="flex items-center justify-between z-10">
-                                                <div 
-                                                    className="flex items-center gap-1.5 opacity-60 hover:opacity-100 transition-opacity cursor-pointer group"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        const newCity = prompt("Introduce el nombre de la ciudad:", item.title);
-                                                        if(newCity) updateItems(items.map(i => i.id === item.id ? {...i, title: newCity.toUpperCase()} : i));
-                                                    }}
-                                                >
-                                                    <MapPin size={12} className="text-blue-500 group-hover:scale-110 transition-transform" />
-                                                    <span className="text-[13px] font-black uppercase tracking-widest">{item.title}</span>
-                                                </div>
-                                                <span className="text-[10px] font-black opacity-30 uppercase bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded-full">Hoy</span>
-                                            </div>
-
-                                            <div className="flex-1 flex items-center justify-between py-2 z-10">
-                                                <div className="flex flex-col">
-                                                    <div className="text-4xl font-black tabular-nums tracking-tighter leading-none flex items-start">
-                                                        22<span className="text-lg mt-0.5 opacity-40">°C</span>
-                                                    </div>
-                                                    <div className="mt-1 flex items-center gap-1.5">
-                                                        <span className="text-[11px] font-black uppercase opacity-60 tracking-tight">Despejado</span>
-                                                        <span className="w-1 h-1 bg-blue-500 rounded-full"></span>
-                                                        <span className="text-[11px] font-black opacity-40">H: 26° L: 14°</span>
-                                                    </div>
-                                                </div>
-                                                <div className="relative">
-                                                    <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full animate-pulse scale-125"></div>
-                                                    <Sun size={44} className="text-amber-500 relative drop-shadow-lg" />
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-auto flex flex-col pt-3 border-t border-black/5 dark:border-white/10 z-10">
-                                                {forecast.map((f, idx) => (
-                                                    <div key={idx} className="flex items-center justify-between py-0.5 group transition-all">
-                                                        <div className="flex items-center gap-1.5 w-16">
-                                                            <span className="text-[11px] font-black">{f.day}</span>
-                                                            <span className="text-[11px] font-black">{f.date}</span>
-                                                        </div>
-                                                        <div className="flex-1 flex justify-end gap-3 mr-4">
-                                                            <span className="text-[11px] font-black opacity-30 w-7 text-right">{f.min}°</span>
-                                                            <span className="text-[11px] font-black w-7 text-right">{f.max}°</span>
-                                                        </div>
-                                                        <div className="w-5 flex justify-end">
-                                                            <f.icon size={15} className={`${f.color} drop-shadow-sm`} />
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    );
-                                })()}
+                                {item.type === 'widget-weather' && <WeatherWidget item={item} updateItems={updateItems} items={items} />}
                             </WidgetWrapper>
                         ))}
 
