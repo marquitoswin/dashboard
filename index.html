@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Cloud</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['Inter', 'sans-serif'],
+                        title: ['Georgia', 'serif']
+                    },
+                }
+            }
+        }
+    </script>
+    <script type="importmap">{"imports":{"react":"https://esm.sh/react@18.2.0","react-dom/client":"https://esm.sh/react-dom@18.2.0/client","lucide-react":"https://esm.sh/lucide-react@0.292.0"}}</script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style id="main-styles">
+        body { margin: 0; overflow: hidden; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .bg-transition { transition: background-image 1s ease-in-out, background-color 0.5s ease; }
+        
+        .theme-dark { --card-bg: rgba(15, 23, 42, 0.85); --text-main: #f8fafc; --text-dim: #94a3b8; --border: rgba(255,255,255,0.1); }
+        .theme-mid-dark { --card-bg: rgba(30, 41, 59, 0.85); --text-main: #f1f5f9; --text-dim: #cbd5e1; --border: rgba(255,255,255,0.1); }
+        .theme-mid-light { --card-bg: rgba(241, 245, 249, 0.95); --text-main: #1e293b; --text-dim: #64748b; --border: rgba(0,0,0,0.05); }
+        .theme-light { --card-bg: rgba(255, 255, 255, 0.98); --text-main: #0f172a; --text-dim: #475569; --border: rgba(0,0,0,0.05); }
+
+        .widget-style { 
+            background-color: var(--card-bg); 
+            color: var(--text-main); 
+            border-color: var(--border);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+    </style>
+    <script>
+        const theme = "dark";
+        if (theme === "dark" || theme === "mid-dark") document.documentElement.classList.add("dark");
+        document.documentElement.classList.add("theme-" + theme);
+    </script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script id="initial-setup">
+        // Configuración inicial COMPLETA
+        window.INITIAL_DATA = {
+            "home": [
+                { "id": "w-clock", "type": "widget-clock", "title": "Reloj", "x": 20, "y": 20, "w": 210, "h": 210, "data": { "isAnalog": false } },
+                { "id": "w-note", "type": "widget-note", "title": "Notas", "x": 20, "y": 240, "w": 210, "h": 210, "data": { "content": "No olvidar revisar el dashboard..." } },
+                { "id": "w-todo", "type": "widget-todo", "title": "Tareas", "x": 20, "y": 460, "w": 210, "h": 250, "data": { "tasks": [{ "id": 1, "text": "Configurar GitHub Pages", "done": false }] } },
+                { "id": "w-calendar-home", "type": "widget-calendar", "title": "Google Calendar", "x": 250, "y": 20, "w": 400, "h": 400, "data": { "url": "https://calendar.google.com/calendar/embed?src=marquitoswin%40gmail.com&ctz=Europe%2FMadrid", "zoom": 1.2 } },
+                { "id": "w-weather", "type": "widget-weather", "title": "MADRID", "x": 670, "y": 20, "w": 260, "h": 400, "data": {} }
+            ],
+            "work": [
+                { "id": "w-clock-w", "type": "widget-clock", "title": "Reloj", "x": 20, "y": 20, "w": 210, "h": 210, "data": { "isAnalog": false } }
+            ]
+        };
+        window.INITIAL_PREFS = {"bgType":"dynamic","bgImage":"","bgColor":"#0f172a","theme":"dark","searchEngine":"google"};
+    </script>
+
+    <script type="text/babel" data-type="module" id="app-code">
+        import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { 
+            Plus, Settings, X, Check, Trash2, Link as LinkIcon, Folder as FolderIcon, Cloud, Clock, Edit2, Search, Briefcase, Home, Image as ImageIcon, Loader2, Download, Upload, Save, Calendar as CalendarIcon, RotateCcw, Play, Sparkles, MessageSquare, Database, Palette, Wallpaper, FileText, FileSpreadsheet, FilePieChart, HardDrive, Grip, Type, ArrowLeft, MapPin, Move, ShoppingCart, Music, Mail, Gamepad2, Landmark, BookOpen, Utensils, ShoppingBag, Camera, Film, Tv, Sun, CloudSun, CloudRain, Wifi, WifiOff, CloudCog, ArrowUpCircle
+        } from 'lucide-react';
+
+        // --- FIREBASE CONFIGURATION ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDC-DEwOtvdGneO16nGJm4W9u3ttQ0mpNA",
+            authDomain: "dashboard-marcos-85453.firebaseapp.com",
+            projectId: "dashboard-marcos-85453",
+            storageBucket: "dashboard-marcos-85453.firebasestorage.app",
+            messagingSenderId: "786299628853",
+            appId: "1:786299628853:web:3437551c61855e2225b07c"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        // --- CAMBIO CLAVE: ID v3 para reiniciar la base de datos limpia ---
+        const DOC_ID = "main_dashboard_v3"; 
+
+        // --- Utilidades ---
+        const MIN_SIZE = 100; 
+
+        const extractNameFromUrl = (url) => {
+            try {
+                if (!url) return "";
+                let hostname = new URL(url.startsWith('http') ? url : 'https://' + url).hostname;
+                hostname = hostname.replace('www.', '');
+                const name = hostname.split('.')[0];
+                return name.charAt(0).toUpperCase() + name.slice(1);
+            } catch (e) { return ""; }
+        };
+
+        const SEARCH_ENGINES = {
+            google: { name: 'Google', url: 'https://www.google.com/search', param: 'q', icon: Search, color: 'text-blue-500' },
+            youtube: { name: 'YouTube', url: 'https://www.youtube.com/results', param: 'search_query', icon: Play, color: 'text-red-500' },
+            amazon: { name: 'Amazon', url: 'https://www.amazon.es/s', param: 'k', icon: ShoppingCart, color: 'text-orange-500' },
+            gemini: { name: 'Gemini', url: 'https://gemini.google.com/app', param: 'q', icon: Sparkles, color: 'text-purple-500' },
+            chatgpt: { name: 'ChatGPT', url: 'https://chatgpt.com', param: 'q', icon: MessageSquare, color: 'text-emerald-500' }
+        };
+
+        const DEFAULTS = window.INITIAL_DATA;
+        const DEFAULT_PREFS = window.INITIAL_PREFS;
+
+        // --- Lógica de Iconos ---
+        const getDynamicFolderIcon = (title) => {
+            const t = title.toUpperCase();
+            if (t.includes('GUITARRA') || t.includes('MUSICA') || t.includes('MUSIC')) return { icon: Music, color: 'text-rose-500' };
+            if (t.includes('EMAIL') || t.includes('CORREO') || t.includes('MAIL')) return { icon: Mail, color: 'text-blue-500' };
+            if (t.includes('TRABAJO') || t.includes('WORK') || t.includes('OFICINA')) return { icon: Briefcase, color: 'text-slate-600' };
+            if (t.includes('CASA') || t.includes('HOME') || t.includes('PERSONAL')) return { icon: Home, color: 'text-emerald-500' };
+            if (t.includes('FOTOS') || t.includes('IMAGENES') || t.includes('GALERIA')) return { icon: Camera, color: 'text-purple-500' };
+            if (t.includes('VIDEO') || t.includes('PELIS') || t.includes('CINE')) return { icon: Film, color: 'text-red-500' };
+            if (t.includes('JUEGOS') || t.includes('GAMES') || t.includes('PLAY')) return { icon: Gamepad2, color: 'text-indigo-500' };
+            if (t.includes('DINERO') || t.includes('BANCO') || t.includes('FINANZAS')) return { icon: Landmark, color: 'text-amber-600' };
+            if (t.includes('ESTUDIO') || t.includes('LIBROS') || t.includes('CURSOS')) return { icon: BookOpen, color: 'text-sky-500' };
+            if (t.includes('COMIDA') || t.includes('FOOD') || t.includes('RECETAS')) return { icon: Utensils, color: 'text-orange-500' };
+            if (t.includes('COMPRAS') || t.includes('SHOP') || t.includes('TIENDA')) return { icon: ShoppingBag, color: 'text-pink-500' };
+            if (t.includes('TV') || t.includes('SERIES') || t.includes('NETFLIX')) return { icon: Tv, color: 'text-red-600' };
+            return { icon: FolderIcon, color: 'text-amber-500' }; 
+        };
+
+        // --- Componentes ---
+        const TodoWidget = ({ item, updateItems, items }) => {
+            const [inputValue, setInputValue] = useState("");
+            const tasks = item.data.tasks || [];
+            const addTask = (e) => {
+                e.preventDefault(); if (!inputValue.trim()) return;
+                const newTask = { id: Date.now(), text: inputValue.trim(), done: false };
+                const updatedItems = items.map(i => i.id === item.id ? { ...i, data: { ...i.data, tasks: [...tasks, newTask] } } : i);
+                updateItems(updatedItems); setInputValue("");
+            };
+            const toggleTask = (taskId) => {
+                const updatedItems = items.map(i => i.id === item.id ? { ...i, data: { ...i.data, tasks: tasks.map(t => t.id === taskId ? { ...t, done: !t.done } : t) } } : i);
+                updateItems(updatedItems);
+            };
+            const deleteTask = (taskId) => {
+                const updatedItems = items.map(i => i.id === item.id ? { ...i, data: { ...i.data, tasks: tasks.filter(t => t.id !== taskId) } } : i);
+                updateItems(updatedItems);
+            };
+            return (
+                <div className="flex flex-col h-full p-4 overflow-hidden">
+                    <div className="flex items-center gap-2 mb-3 text-blue-500 font-black pointer-events-none"><Check size={14} /><h3 className="text-[10px] uppercase tracking-widest">{item.title || 'TAREAS'}</h3></div>
+                    <div className="flex-1 overflow-y-auto space-y-2 mb-2 pr-1 scrollbar-hide" onMouseDown={e => e.stopPropagation()}>
+                        {tasks.map(t => (
+                            <div key={t.id} className="flex items-center gap-2 group">
+                                <button onClick={(e) => { e.stopPropagation(); toggleTask(t.id); }} className={`w-4 h-4 rounded flex items-center justify-center border transition-all ${t.done ? 'bg-blue-500 border-blue-500' : 'border-slate-400 dark:border-slate-600 hover:border-blue-500'}`}>{t.done && <Check size={10} className="text-white" />}</button>
+                                <span className={`flex-1 text-xs font-medium truncate ${t.done ? 'line-through opacity-40' : 'dark:text-slate-200'}`}>{t.text}</span>
+                                <button onClick={(e) => { e.stopPropagation(); deleteTask(t.id); }} className="opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all"><Trash2 size={12} /></button>
+                            </div>
+                        ))}
+                    </div>
+                    <form onSubmit={addTask} className="mt-auto flex gap-2" onMouseDown={e => e.stopPropagation()}>
+                        <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} placeholder="Nueva tarea..." className="flex-1 bg-slate-100 dark:bg-white/5 border-none rounded-lg px-2 py-1 text-[11px] focus:ring-1 focus:ring-blue-500 outline-none text-slate-700 dark:text-slate-200 placeholder:opacity-50" />
+                        <button type="submit" className="p-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors" disabled={!inputValue.trim()}><Plus size={14} /></button>
+                    </form>
+                </div>
+            );
+        };
+
+        const Modal = ({ isOpen, onClose, title, children }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={onClose}>
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-800 overflow-hidden transform transition-all scale-100" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                            <h3 className="text-sm font-black uppercase tracking-wider dark:text-white px-2">{title}</h3>
+                            <button onClick={onClose} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors dark:text-white"><X size={20} /></button>
+                        </div>
+                        <div className="p-6 overflow-y-auto max-h-[70vh]">{children}</div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ShortcutWidget = ({ data, title, compact = false, onNavigate, onMouseDown }) => {
+            const [iconUrl, setIconUrl] = useState(() => {
+                try { return `https://www.google.com/s2/favicons?domain=${new URL(data.url.startsWith('http') ? data.url : 'https://' + data.url).hostname}&sz=128`; } catch(e) { return 'https://cdn-icons-png.flaticon.com/512/1006/1006771.png'; }
+            });
+            return (
+                <a href={data.url.startsWith('http') ? data.url : 'https://' + data.url} target="_blank" rel="noopener noreferrer" onClick={onNavigate} onMouseDown={onMouseDown} onDragStart={e => e.preventDefault()} className={`flex flex-col items-center justify-center transition-transform hover:scale-110 group ${compact ? 'w-20 cursor-pointer' : 'h-full w-full p-1 cursor-pointer'}`}>
+                    <div className={`${compact ? 'w-12 h-12' : 'w-14 h-14'} mb-1 drop-shadow-lg bg-white/50 dark:bg-slate-800/50 rounded-2xl flex items-center justify-center p-2 border border-white/20 pointer-events-none`}>
+                        <img src={iconUrl} alt="" className="w-full h-full object-contain" onError={() => setIconUrl('https://cdn-icons-png.flaticon.com/512/1006/1006771.png')} />
+                    </div>
+                    <span className="text-[10px] font-black text-slate-800 dark:text-white bg-white/60 dark:bg-black/40 rounded-full px-2 py-0.5 backdrop-blur-sm truncate max-w-full uppercase tracking-tighter pointer-events-none">{title}</span>
+                </a>
+            );
+        };
+
+        const CloudDocWidget = ({ data, title, compact = false, onNavigate, onMouseDown }) => {
+            const DocIcon = data.docType === 'sheet' ? FileSpreadsheet : (data.docType === 'slide' ? FilePieChart : FileText);
+            return (
+                <a href={data.url} target="_blank" rel="noopener noreferrer" onClick={onNavigate} onMouseDown={onMouseDown} onDragStart={e => e.preventDefault()} className={`flex flex-col items-center justify-center transition-transform hover:scale-110 group ${compact ? 'w-20 cursor-pointer' : 'h-full w-full p-1 cursor-pointer'}`}>
+                    <div className={`${compact ? 'w-12 h-12' : 'w-14 h-14'} mb-1 drop-shadow-lg bg-blue-500/10 dark:bg-blue-500/20 rounded-2xl flex items-center justify-center p-2 border border-blue-500/30 pointer-events-none`}>
+                        <DocIcon className="text-blue-600 dark:text-blue-400" size={compact ? 24 : 32} />
+                    </div>
+                    <div className="flex items-center gap-1 bg-white/60 dark:bg-black/40 rounded-full px-2 py-0.5 backdrop-blur-sm pointer-events-none"><HardDrive size={compact ? 6 : 8} className="opacity-50 dark:text-white" /><span className="text-[10px] font-black text-slate-800 dark:text-white truncate max-w-[80px] uppercase tracking-tighter">{title}</span></div>
+                </a>
+            );
+        };
+
+        const FolderWidget = ({ title, data, onOpen }) => {
+            const { icon: IconComp, color } = getDynamicFolderIcon(title);
+            const isDefault = IconComp === FolderIcon;
+            return (
+                <div onClick={onOpen} className="flex flex-col items-center justify-center h-full w-full p-2 cursor-pointer transition-transform hover:scale-105 group">
+                    <div className="w-16 h-14 relative mb-1 pointer-events-none flex items-center justify-center">
+                        <IconComp size={isDefault ? 64 : 48} fill={isDefault ? "currentColor" : "none"} className={`${color} opacity-90 drop-shadow-md transition-all`} strokeWidth={isDefault ? 1.5 : 2.5} />
+                        <div className={`absolute inset-0 ${isDefault ? 'top-3' : 'top-6'} flex items-center justify-center`}><span className="text-[10px] font-black text-slate-800 dark:text-white bg-white/80 dark:bg-black/60 rounded-full px-1.5 shadow-sm">{(data.items || []).length}</span></div>
+                    </div>
+                    <span className="text-[10px] font-black text-slate-800 dark:text-white bg-white/60 dark:bg-black/40 rounded-full px-2 py-0.5 backdrop-blur-sm truncate max-w-full uppercase tracking-tighter pointer-events-none">{title}</span>
+                </div>
+            );
+        };
+
+        const WidgetWrapper = ({ item, isEditing, onDelete, onEditProperties, onMouseDown, onResizeStart, children }) => {
+            const isIconType = ['shortcut', 'folder', 'cloud-doc'].includes(item.type);
+            const style = { left: item.x, top: item.y, width: item.w, height: item.h, position: 'absolute', zIndex: isEditing ? 100 : 1 };
+            return (
+                <div style={style} onMouseDown={(e) => onMouseDown(e, item.id)} className="group flex flex-col">
+                    <div className={`w-full h-full relative widget-style border ${isIconType ? 'overflow-visible bg-transparent border-transparent shadow-none' : 'overflow-hidden rounded-2xl shadow-sm'} ${isEditing ? 'ring-2 ring-blue-500/50' : ''}`}>
+                        {children}
+                        {isEditing && <div className="absolute inset-0 bg-transparent z-[5] cursor-move"></div>}
+                    </div>
+                    {isEditing && (
+                        <>
+                            <div className="absolute -top-3 -left-3 z-50 p-1.5 bg-white dark:bg-slate-800 rounded-full shadow-md border border-slate-200 dark:border-slate-700 cursor-move"><Grip size={14} className="text-slate-500" /></div>
+                            <div className="absolute -top-3 -right-3 z-50 flex gap-1">
+                                <button onMouseDown={e => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onEditProperties(item); }} className="p-1.5 bg-blue-500 text-white rounded-full shadow-md hover:scale-110"><Settings size={14} /></button>
+                                <button onMouseDown={e => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onDelete(item.id); }} className="p-1.5 bg-red-500 text-white rounded-full shadow-md hover:scale-110"><Trash2 size={14} /></button>
+                            </div>
+                            {!isIconType && <div onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e, item.id, 'se'); }} className="absolute -bottom-1 -right-1 w-4 h-4 bg-blue-500 rounded-full cursor-se-resize z-50 border-2 border-white flex items-center justify-center text-white"><Move size={10}/></div>}
+                        </>
+                    )}
+                </div>
+            );
+        };
+
+        // --- App Principal ---
+
+        function App() {
+            const mainRef = useRef(null); 
+            const [mode, setMode] = useState(() => localStorage.getItem('dashboard-mode') || 'home');
+            const [isEditing, setIsEditing] = useState(false);
+            const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+            const [activeMenu, setActiveMenu] = useState(null);
+            const [currentFolderId, setCurrentFolderId] = useState(null); 
+            const [currentTime, setCurrentTime] = useState(new Date());
+            const [isConnected, setIsConnected] = useState(false);
+            const [isSyncing, setIsSyncing] = useState(false);
+
+            useEffect(() => {
+                const interval = setInterval(() => setCurrentTime(new Date()), 1000);
+                return () => clearInterval(interval);
+            }, []);
+
+            const [allData, setAllData] = useState(DEFAULTS);
+            const [preferences, setPreferences] = useState(DEFAULT_PREFS);
+            const isInitialLoad = useRef(true);
+
+            useEffect(() => {
+                setIsSyncing(true);
+                // Conectando a DOC_ID = "main_dashboard_v3" para empezar de cero limpio
+                const unsub = onSnapshot(doc(db, "data", DOC_ID), (docSnap) => {
+                    setIsConnected(true); setIsSyncing(false);
+                    if (docSnap.exists()) {
+                        const cloudData = docSnap.data();
+                        if (cloudData.items) setAllData(cloudData.items);
+                        if (cloudData.prefs) setPreferences(cloudData.prefs);
+                    } else {
+                         setDoc(doc(db, "data", DOC_ID), { items: DEFAULTS, prefs: DEFAULT_PREFS });
+                    }
+                    isInitialLoad.current = false;
+                }, (error) => { console.error("Error connecting to DB:", error); setIsConnected(false); });
+                return () => unsub();
+            }, []);
+
+            useEffect(() => {
+                if (isInitialLoad.current) return; 
+                const saveToCloud = setTimeout(() => {
+                    setIsSyncing(true);
+                    setDoc(doc(db, "data", DOC_ID), { items: allData, prefs: preferences }).then(() => { setIsSyncing(false); }).catch(e => console.error("Error saving:", e));
+                }, 1000); 
+                return () => clearTimeout(saveToCloud);
+            }, [allData, preferences]);
+
+            useEffect(() => { localStorage.setItem('dashboard-mode', mode); }, [mode]);
+            
+            useEffect(() => {
+                const root = document.documentElement;
+                root.classList.remove('theme-dark', 'theme-mid-dark', 'theme-mid-light', 'theme-light', 'dark');
+                root.classList.add(`theme-${preferences.theme}`);
+                if (preferences.theme === 'dark' || preferences.theme === 'mid-dark') root.classList.add('dark');
+            }, [preferences.theme]);
+
+            const handleMigrateData = () => {
+                if (!confirm("⚠️ ATENCIÓN: Esto buscará datos antiguos en tu navegador y SOBRESCRIBIRÁ lo que hay en la nube ahora mismo.\n\nÚsalo solo si quieres recuperar tus iconos antiguos.\n\n¿Estás seguro?")) return;
+                try {
+                    const localDataRaw = localStorage.getItem('dashboard-data-v5-pixel');
+                    const localPrefsRaw = localStorage.getItem('dashboard-prefs');
+                    if (!localDataRaw) { alert("❌ No se encontraron datos antiguos."); return; }
+                    const localData = JSON.parse(localDataRaw);
+                    const localPrefs = localPrefsRaw ? JSON.parse(localPrefsRaw) : DEFAULT_PREFS;
+                    setIsSyncing(true);
+                    setDoc(doc(db, "data", DOC_ID), { items: localData, prefs: localPrefs }).then(() => {
+                        alert("✅ ¡ÉXITO! Datos recuperados."); setIsSyncing(false);
+                    }).catch(e => { alert("Error: " + e.message); setIsSyncing(false); });
+                } catch (e) { alert("Error: " + e.message); }
+            };
+
+            const currentBgStyle = useMemo(() => {
+                if (preferences.bgType === 'color') return { backgroundColor: preferences.bgColor };
+                let url = preferences.bgImage;
+                if (preferences.bgType === 'dynamic') {
+                    const h = new Date().getHours();
+                    if (h >= 6 && h < 9) url = "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=1920&q=80";
+                    else if (h >= 9 && h < 18) url = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1920&q=80";
+                    else if (h >= 18 && h < 21) url = "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=1920&q=80";
+                    else url = "https://images.unsplash.com/photo-1477346611705-65d1883cee1e?auto=format&fit=crop&w=1920&q=80";
+                }
+                return { backgroundImage: `url(${url})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' };
+            }, [preferences]);
+
+            const items = allData[mode] || [];
+            const activeFolder = items.find(i => i.id === currentFolderId);
+            const updateItems = (newItems) => setAllData(prev => ({ ...prev, [mode]: newItems }));
+
+            const addItem = (type, customData = {}) => {
+                const id = Math.random().toString(36).substr(2, 9);
+                const scrollX = mainRef.current ? mainRef.current.scrollLeft : 0;
+                const scrollY = mainRef.current ? mainRef.current.scrollTop : 0;
+                const newItem = { id, type, title: 'NUEVO', x: 100 + scrollX, y: 100 + scrollY, w: 210, h: 210, data: customData };
+                
+                if (type === 'shortcut') {
+                    const url = prompt("Introduce la URL:"); if (!url) return;
+                    const suggestedName = extractNameFromUrl(url);
+                    const name = prompt("Nombre:", suggestedName) || suggestedName;
+                    newItem.title = name.toUpperCase(); newItem.data = { url }; newItem.w = 100; newItem.h = 100;
+                } else if (type === 'cloud-doc') {
+                    const url = prompt("Introduce la URL:"); if (!url) return;
+                    const name = prompt("Nombre:", "DOC") || "DOC";
+                    const dType = prompt("Tipo (text, sheet, slide):") || 'text';
+                    newItem.title = name.toUpperCase(); newItem.data = { url, docType: dType }; newItem.w = 100; newItem.h = 100;
+                } else if (type === 'folder') {
+                    const name = prompt("Nombre carpeta:", "CARPETA"); if (!name) return;
+                    newItem.title = name.toUpperCase(); newItem.data = { items: [] }; newItem.w = 100; newItem.h = 100;
+                } else if (type === 'widget-clock') { newItem.data = { isAnalog: false }; }
+                else if (type === 'widget-todo') { newItem.title = "TAREAS"; newItem.data = { tasks: [] }; newItem.w = 210; newItem.h = 250; }
+                
+                updateItems([...items, newItem]);
+            };
+
+            const handleExportHtml = () => {
+                try {
+                    const scriptContent = document.getElementById('app-code').innerText;
+                    const styleContent = document.getElementById('main-styles').innerText;
+                    const tailwindConfigContent = document.getElementById('tailwind-config').innerText;
+                    
+                    const htmlParts = [
+                        '<!DOCTYPE html>', '<html lang="es">', '<head>', '    <meta charset="UTF-8">', '    <title>Dashboard Cloud</title>',
+                        '    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">',
+                        '    <script src="https://cdn.tailwindcss.com"><\/script>',
+                        '    <script id="tailwind-config">' + tailwindConfigContent.replace(/<\/script/g, '<\\/script') + '<\/script>',
+                        '    <script type="importmap">{"imports":{"react":"https://esm.sh/react@18.2.0","react-dom/client":"https://esm.sh/react-dom@18.2.0/client","lucide-react":"https://esm.sh/lucide-react@0.292.0"}}<\/script>',
+                        '    <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>',
+                        '    <style id="main-styles">' + styleContent + '<\/style>',
+                        '    <script>',
+                        '        const theme = ' + JSON.stringify(preferences.theme) + ';',
+                        '        if (theme === "dark" || theme === "mid-dark") document.documentElement.classList.add("dark");',
+                        '        document.documentElement.classList.add("theme-" + theme);',
+                        '    <\/script>',
+                        '</head>',
+                        '<body>',
+                        '    <div id="root"></div>',
+                        '    <script id="initial-setup">',
+                        '       window.INITIAL_DATA = ' + JSON.stringify(DEFAULTS) + ';',
+                        '       window.INITIAL_PREFS = ' + JSON.stringify(DEFAULT_PREFS) + ';',
+                        '    <\/script>',
+                        '    <script type="text/babel" data-type="module" id="app-code">' + scriptContent.replace(/<\/script/g, '<\\/script') + '<\/script>',
+                        '</body>',
+                        '</html>'
+                    ];
+
+                    const fullHtml = htmlParts.join('\n');
+                    const blob = new Blob([fullHtml], { type: 'text/html' });
+                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Dashboard_v1.56_Cloud.html'; a.click();
+                } catch (e) { alert('Error al exportar: ' + e.message); }
+            };
+
+            const [dragState, setDragState] = useState({ isDragging: false, itemId: null, offset: {x:0, y:0} });
+            const [resizeState, setResizeState] = useState({ isResizing: false, itemId: null, startRect: null, startMouse: {x:0, y:0} });
+            const [pendingWidgetDrag, setPendingWidgetDrag] = useState(null); 
+            const dragHasMoved = useRef(false);
+
+            const handleMouseDown = (e, id) => {
+                if (e.target.closest('input, textarea, button, select')) return;
+                const it = items.find(i => i.id === id); if (!it) return;
+                const scrollX = mainRef.current ? mainRef.current.scrollLeft : 0;
+                const scrollY = mainRef.current ? mainRef.current.scrollTop : 0;
+                setPendingWidgetDrag({ id, startX: e.clientX, startY: e.clientY, offset: { x: (e.clientX + scrollX) - it.x, y: (e.clientY + scrollY) - it.y } });
+                dragHasMoved.current = false;
+            };
+
+            const [pendingExtract, setPendingExtract] = useState(null);
+            const extractStartPos = useRef({ x: 0, y: 0 });
+            const handleMouseDownInFolder = (e, subItem) => { setPendingExtract(subItem); extractStartPos.current = { x: e.clientX, y: e.clientY }; };
+
+            const processExtraction = (e) => {
+                const subItem = pendingExtract;
+                const scrollX = mainRef.current ? mainRef.current.scrollLeft : 0;
+                const scrollY = mainRef.current ? mainRef.current.scrollTop : 0;
+                const updatedFolder = { ...activeFolder, data: { ...activeFolder.data, items: (activeFolder.data.items || []).filter(i => i.id !== subItem.id) } };
+                const newItem = { id: subItem.id, type: subItem.docType ? 'cloud-doc' : 'shortcut', title: subItem.title, x: (e.clientX + scrollX) - 50, y: (e.clientY + scrollY) - 50, w: 100, h: 100, data: { ...subItem } };
+                const newItems = items.map(i => i.id === currentFolderId ? updatedFolder : i);
+                updateItems([...newItems, newItem]);
+                setDragState({ isDragging: true, itemId: newItem.id, offset: { x: 50, y: 50 } });
+                dragHasMoved.current = true; setPendingExtract(null); setCurrentFolderId(null);
+            };
+
+            const handleMouseMove = useCallback((e) => {
+                const scrollX = mainRef.current ? mainRef.current.scrollLeft : 0;
+                const scrollY = mainRef.current ? mainRef.current.scrollTop : 0;
+                if (pendingWidgetDrag) {
+                    const dist = Math.sqrt(Math.pow(e.clientX - pendingWidgetDrag.startX, 2) + Math.pow(e.clientY - pendingWidgetDrag.startY, 2));
+                    if (dist > 10) { setDragState({ isDragging: true, itemId: pendingWidgetDrag.id, offset: pendingWidgetDrag.offset }); setPendingWidgetDrag(null); dragHasMoved.current = true; }
+                }
+                if (dragState.isDragging) {
+                    const newX = (e.clientX + scrollX) - dragState.offset.x;
+                    const newY = (e.clientY + scrollY) - dragState.offset.y;
+                    updateItems(items.map(i => i.id === dragState.itemId ? { ...i, x: newX, y: newY } : i));
+                } else if (pendingExtract) {
+                    const dist = Math.sqrt(Math.pow(e.clientX - extractStartPos.current.x, 2) + Math.pow(e.clientY - extractStartPos.current.y, 2));
+                    if (dist > 15) processExtraction(e);
+                } else if (resizeState.isResizing) {
+                    const dx = e.clientX - resizeState.startMouse.x;
+                    const dy = e.clientY - resizeState.startMouse.y;
+                    updateItems(items.map(i => i.id === resizeState.itemId ? { ...i, w: Math.max(MIN_SIZE, resizeState.startRect.w + dx), h: Math.max(MIN_SIZE, resizeState.startRect.h + dy) } : i));
+                }
+            }, [dragState, resizeState, items, pendingExtract, activeFolder, currentFolderId, pendingWidgetDrag]);
+
+            const handleMouseUp = useCallback((e) => {
+                const scrollX = mainRef.current ? mainRef.current.scrollLeft : 0;
+                const scrollY = mainRef.current ? mainRef.current.scrollTop : 0;
+                if (dragState.isDragging) {
+                    const droppedId = dragState.itemId;
+                    const itemToMove = items.find(i => i.id === droppedId);
+                    if (itemToMove && (itemToMove.type === 'shortcut' || itemToMove.type === 'cloud-doc')) {
+                        const mouseX = e.clientX + scrollX; const mouseY = e.clientY + scrollY;
+                        const targetFolder = items.find(f => f.type === 'folder' && f.id !== droppedId && mouseX >= f.x && mouseX <= f.x + f.w && mouseY >= f.y && mouseY <= f.y + f.h);
+                        if (targetFolder) {
+                            const newItems = items.filter(i => i.id !== droppedId).map(f => {
+                                if (f.id === targetFolder.id) return { ...f, data: { ...f.data, items: [...(f.data.items || []), { ...itemToMove.data, id: itemToMove.id, title: itemToMove.title }] } };
+                                return f;
+                            });
+                            updateItems(newItems);
+                        }
+                    }
+                }
+                setPendingExtract(null); setPendingWidgetDrag(null); setDragState({ isDragging: false, itemId: null }); setResizeState({ isResizing: false, itemId: null });
+            }, [dragState, items, updateItems]);
+
+            useEffect(() => {
+                if (dragState.isDragging || resizeState.isResizing || pendingExtract || pendingWidgetDrag) {
+                    window.addEventListener('mousemove', handleMouseMove);
+                    window.addEventListener('mouseup', handleMouseUp);
+                    return () => { window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); };
+                }
+            }, [dragState.isDragging, resizeState.isResizing, pendingExtract, pendingWidgetDrag, handleMouseMove, handleMouseUp]);
+
+            const handleNavigate = (e) => { if (dragHasMoved.current) { e.preventDefault(); e.stopPropagation(); } };
+            const curSearch = SEARCH_ENGINES[preferences.searchEngine || 'google'];
+            const getFormattedDate = (date) => {
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = date.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '').toUpperCase();
+                const year = date.getFullYear();
+                return `${day} ${month} ${year}`;
+            };
+
+            return (
+                <div className="min-h-screen w-full transition-all duration-1000 bg-transition overflow-hidden" style={currentBgStyle}>
+                    <div className="fixed inset-0 bg-black/10 dark:bg-black/40 pointer-events-none" />
+                    
+                    <header className="fixed top-0 left-0 right-0 z-[150] px-4 py-2 flex items-center justify-between bg-white/60 dark:bg-black/70 backdrop-blur-xl border-b border-white/10 h-14">
+                        <div className="flex items-center gap-3">
+                            <button onClick={() => setCurrentFolderId(null)} className="font-black text-slate-800 dark:text-white uppercase tracking-tighter mr-2 hover:opacity-70 transition-opacity text-xl flex items-center gap-2" style={{ fontFamily: "'Georgia', serif" }}>
+                                DASHBOARD
+                                <div className="text-[9px] flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded-full font-sans tracking-normal opacity-50">
+                                    {isConnected ? <Wifi size={10} className="text-green-400" /> : <WifiOff size={10} className="text-red-400" />}
+                                    {isSyncing ? "GUARDANDO..." : "EN LÍNEA"}
+                                </div>
+                            </button>
+                            <div className="flex bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-xl">
+                                <button onClick={() => setMode('home')} className={`px-4 py-1.5 text-base font-black uppercase rounded-lg transition-all ${mode === 'home' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>Casa</button>
+                                <button onClick={() => setMode('work')} className={`px-4 py-1.5 text-base font-black uppercase rounded-lg transition-all ${mode === 'work' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>Trabajo</button>
+                            </div>
+                            <button onClick={handleExportHtml} className="p-2 px-4 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-lg active:scale-95 transition-all ml-1"><Download size={16} /><span className="text-sm font-black uppercase hidden sm:inline">Exportar HTML</span></button>
+                            <form onSubmit={(e) => { e.preventDefault(); window.open(`${curSearch.url}?${curSearch.param}=${e.target.q.value}`, '_blank'); e.target.reset(); }} className="max-w-xs md:w-80 relative flex items-center bg-white/30 dark:bg-black/20 backdrop-blur-md rounded-full px-1 border border-white/20 ml-4 focus-within:border-blue-500 transition-colors">
+                                <button type="button" onClick={() => setActiveMenu(activeMenu === 'search' ? null : 'search')} className={`p-2 rounded-full hover:bg-white/20 ${curSearch.color}`}><curSearch.icon size={18} /></button>
+                                {activeMenu === 'search' && (
+                                    <div className="absolute top-full left-0 mt-2 bg-white dark:bg-slate-900 shadow-2xl rounded-2xl overflow-hidden min-w-[140px] z-[160]">
+                                        {Object.entries(SEARCH_ENGINES).map(([k, eng]) => (
+                                            <button key={k} onClick={() => { setPreferences({...preferences, searchEngine: k}); setActiveMenu(null); }} className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase hover:bg-slate-50 dark:hover:bg-slate-800 dark:text-white"><eng.icon size={14} className={eng.color} /> {eng.name}</button>
+                                        ))}
+                                    </div>
+                                )}
+                                <input type="text" name="q" placeholder={`Buscar...`} className="bg-transparent border-none outline-none px-2 py-1.5 text-base font-bold uppercase tracking-tighter flex-1 dark:text-white placeholder:text-slate-500" />
+                            </form>
+                            <div className="flex items-center gap-1 ml-4 border-l border-white/10 pl-4">
+                                <button onClick={() => addItem('shortcut')} className="flex items-center gap-2 p-2 px-3 rounded-full hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition-colors" title="Añadir URL"><LinkIcon size={16}/><span className="text-sm font-black uppercase hidden lg:inline">URL</span></button>
+                                <button onClick={() => addItem('cloud-doc')} className="flex items-center gap-2 p-2 px-3 rounded-full hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 transition-colors" title="Añadir Documento"><FileText size={16}/><span className="text-sm font-black uppercase hidden lg:inline">Documento</span></button>
+                                <button onClick={() => addItem('folder')} className="flex items-center gap-2 p-2 px-3 rounded-full hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 transition-colors" title="Añadir Carpeta"><FolderIcon size={16}/><span className="text-sm font-black uppercase hidden lg:inline">Carpeta</span></button>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setActiveMenu(activeMenu === 'bg' ? null : 'bg')} className="p-2.5 rounded-full hover:bg-white/20 text-slate-600 dark:text-slate-300" title="Fondo"><Wallpaper size={20} /></button>
+                            {activeMenu === 'bg' && (
+                                <div className="absolute top-full right-44 mt-2 bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 rounded-2xl p-3 min-w-[220px] z-[160] space-y-3">
+                                    <button onClick={() => { setPreferences({...preferences, bgType: 'dynamic'}); setActiveMenu(null); }} className="w-full text-left p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-[10px] font-black uppercase dark:text-white">Fondo Dinámico</button>
+                                    <input type="color" value={preferences.bgColor} onChange={(e) => setPreferences({...preferences, bgType: 'color', bgColor: e.target.value})} className="w-full h-8 rounded-lg cursor-pointer border-0 bg-transparent"/>
+                                    <button onClick={() => { const u = prompt("URL de Imagen:"); if(u) setPreferences({...preferences, bgType: 'image', bgImage: u}); setActiveMenu(null); }} className="w-full text-left p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-[10px] font-black uppercase dark:text-white text-purple-500">URL Imagen</button>
+                                </div>
+                            )}
+                            <button onClick={() => setActiveMenu(activeMenu === 'themes' ? null : 'themes')} className="p-2.5 rounded-full hover:bg-white/20 text-slate-600 dark:text-slate-300" title="Temas"><Palette size={20} /></button>
+                            {activeMenu === 'themes' && (
+                                <div className="absolute top-full right-24 mt-2 bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 rounded-2xl p-2 min-w-[200px] z-[160] grid grid-cols-2 gap-2">
+                                    {['dark', 'mid-dark', 'mid-light', 'light'].map(t => (
+                                        <button key={t} onClick={() => { setPreferences({...preferences, theme: t}); setActiveMenu(null); }} className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${preferences.theme === t ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                                            <div className={`w-10 h-8 rounded-lg ${t.includes('dark') ? 'bg-slate-900' : 'bg-slate-100'} border border-slate-300 dark:border-slate-600`} />
+                                            <span className="text-[10px] font-black uppercase dark:text-white">{t}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                            <button onClick={() => setIsEditing(!isEditing)} className={`p-2 rounded-full transition-all ${isEditing ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-600 dark:text-slate-300 hover:bg-white/20'}`}>{isEditing ? <Check size={20} /> : <Edit2 size={20} />}</button>
+                            
+                            {/* BOTÓN MIGRAR */}
+                            <button onClick={handleMigrateData} className="p-2 rounded-full bg-orange-500 text-white shadow-lg hover:bg-orange-600 transition-all flex items-center justify-center" title="IMPORTAR DATOS LOCALES A LA NUBE">
+                                <ArrowUpCircle size={20} />
+                            </button>
+
+                            <button onClick={() => setIsSettingsOpen(true)} className="p-2 rounded-full hover:bg-white/20 text-slate-600 dark:text-slate-300"><Settings size={20} /></button>
+                        </div>
+                    </header>
+
+                    <main ref={mainRef} className="relative w-full h-screen pt-14 overflow-auto">
+                        {items.map(item => (
+                            <WidgetWrapper key={item.id} item={item} isEditing={isEditing} 
+                                onDelete={id => updateItems(items.filter(i => i.id !== id))} 
+                                onEditProperties={it => {
+                                    const t = prompt("Nuevo nombre:", it.title);
+                                    if(t) updateItems(items.map(i => i.id === it.id ? {...i, title: t.toUpperCase()} : i));
+                                }}
+                                onMouseDown={handleMouseDown}
+                                onResizeStart={(e, id) => { 
+                                    const it = items.find(i => i.id === id); 
+                                    setResizeState({ isResizing: true, itemId: id, startRect: { w: it.w, h: it.h }, startMouse: { x: e.clientX, y: e.clientY } }); 
+                                }}
+                            >
+                                {item.type === 'widget-clock' && (
+                                    <div 
+                                        className="flex flex-col items-center justify-center h-full p-2 text-center select-none cursor-pointer group/clock"
+                                        onClick={() => !dragHasMoved.current && updateItems(items.map(i => i.id === item.id ? {...i, data: {...i.data, isAnalog: !i.data.isAnalog}} : i))}
+                                    >
+                                        {item.data.isAnalog ? (
+                                            <div className="w-full h-full max-w-[120px] max-h-[120px] mb-2 relative">
+                                                <svg viewBox="0 0 100 100" className="w-full h-full">
+                                                    <circle cx="50" cy="50" r="48" className="fill-white/10 stroke-current opacity-20" strokeWidth="2" />
+                                                    {[...Array(12)].map((_, i) => (
+                                                        <line key={i} x1="50" y1="8" x2="50" y2="12" className="stroke-current opacity-40" strokeWidth="2" transform={`rotate(${i * 30} 50 50)`} />
+                                                    ))}
+                                                    <line x1="50" y1="50" x2="50" y2="25" className="stroke-current" strokeWidth="4" strokeLinecap="round" transform={`rotate(${(currentTime.getHours() % 12) * 30 + currentTime.getMinutes() * 0.5} 50 50)`} />
+                                                    <line x1="50" y1="50" x2="50" y2="15" className="stroke-current opacity-80" strokeWidth="3" strokeLinecap="round" transform={`rotate(${currentTime.getMinutes() * 6} 50 50)`} />
+                                                    <line x1="50" y1="50" x2="50" y2="10" className="stroke-red-500" strokeWidth="1" strokeLinecap="round" transform={`rotate(${currentTime.getSeconds() * 6} 50 50)`} />
+                                                    <circle cx="50" cy="50" r="2" className="fill-current" />
+                                                </svg>
+                                            </div>
+                                        ) : (
+                                            <div className="text-4xl font-black tabular-nums leading-none mb-2 pointer-events-none">
+                                                {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </div>
+                                        )}
+                                        <div className="text-[10px] font-black uppercase opacity-60 pointer-events-none">
+                                            {getFormattedDate(currentTime)}
+                                        </div>
+                                    </div>
+                                )}
+                                {item.type === 'widget-calendar' && (
+                                    <div className="flex flex-col h-full w-full bg-white dark:bg-slate-900">
+                                        <div className="p-2 border-b bg-slate-50 dark:bg-slate-800 flex items-center gap-2 pointer-events-none"><CalendarIcon size={12}/><span className="text-[10px] font-black uppercase truncate">{item.title}</span></div>
+                                        <div className="flex-1 relative overflow-hidden bg-white">
+                                            <iframe src={item.data.url} style={{ border: 0, transform: `scale(${item.data.zoom || 1})`, transformOrigin: '0 0', width: `${100 / (item.data.zoom || 1)}%`, height: `${100 / (item.data.zoom || 1)}%`, position: 'absolute' }} />
+                                        </div>
+                                    </div>
+                                )}
+                                {item.type === 'widget-note' && (
+                                    <div className="flex flex-col h-full p-4">
+                                        <div className="flex items-center gap-2 mb-2 opacity-60 pointer-events-none"><Type size={12}/><h3 className="text-[10px] font-black uppercase">{item.title}</h3></div>
+                                        <textarea className="flex-1 w-full bg-transparent resize-none outline-none text-xs font-medium" value={item.data.content || ''} onChange={e => updateItems(items.map(i => i.id === item.id ? {...i, data: {...i.data, content: e.target.value}} : i))} onMouseDown={e => e.stopPropagation()} />
+                                    </div>
+                                )}
+                                {item.type === 'widget-todo' && <TodoWidget item={item} updateItems={updateItems} items={items} />}
+                                {item.type === 'shortcut' && <ShortcutWidget title={item.title} data={item.data} onNavigate={handleNavigate} />}
+                                {item.type === 'cloud-doc' && <CloudDocWidget title={item.title} data={item.data} onNavigate={handleNavigate} />}
+                                {item.type === 'folder' && <FolderWidget title={item.title} data={item.data} onOpen={() => !dragHasMoved.current && setCurrentFolderId(item.id)} />}
+                                {item.type === 'widget-weather' && (() => {
+                                    const forecast = [
+                                        { day: 'LUN', date: '25', icon: Sun, min: 14, max: 24, color: 'text-amber-500' },
+                                        { day: 'MAR', date: '26', icon: CloudSun, min: 15, max: 22, color: 'text-blue-400' },
+                                        { day: 'MIÉ', date: '27', icon: CloudRain, min: 12, max: 19, color: 'text-indigo-400' },
+                                        { day: 'JUE', date: '28', icon: Cloud, min: 13, max: 21, color: 'text-slate-400' },
+                                        { day: 'VIE', date: '29', icon: Sun, min: 15, max: 25, color: 'text-orange-400' }
+                                    ];
+                                    return (
+                                        <div className="flex flex-col h-full p-5 select-none cursor-pointer overflow-hidden rounded-2xl relative">
+                                            <div className="flex items-center justify-between z-10">
+                                                <div 
+                                                    className="flex items-center gap-1.5 opacity-60 hover:opacity-100 transition-opacity cursor-pointer group"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const newCity = prompt("Introduce el nombre de la ciudad:", item.title);
+                                                        if(newCity) updateItems(items.map(i => i.id === item.id ? {...i, title: newCity.toUpperCase()} : i));
+                                                    }}
+                                                >
+                                                    <MapPin size={12} className="text-blue-500 group-hover:scale-110 transition-transform" />
+                                                    <span className="text-[13px] font-black uppercase tracking-widest">{item.title}</span>
+                                                </div>
+                                                <span className="text-[10px] font-black opacity-30 uppercase bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded-full">Hoy</span>
+                                            </div>
+
+                                            <div className="flex-1 flex items-center justify-between py-2 z-10">
+                                                <div className="flex flex-col">
+                                                    <div className="text-4xl font-black tabular-nums tracking-tighter leading-none flex items-start">
+                                                        22<span className="text-lg mt-0.5 opacity-40">°C</span>
+                                                    </div>
+                                                    <div className="mt-1 flex items-center gap-1.5">
+                                                        <span className="text-[11px] font-black uppercase opacity-60 tracking-tight">Despejado</span>
+                                                        <span className="w-1 h-1 bg-blue-500 rounded-full"></span>
+                                                        <span className="text-[11px] font-black opacity-40">H: 26° L: 14°</span>
+                                                    </div>
+                                                </div>
+                                                <div className="relative">
+                                                    <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full animate-pulse scale-125"></div>
+                                                    <Sun size={44} className="text-amber-500 relative drop-shadow-lg" />
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-auto flex flex-col pt-3 border-t border-black/5 dark:border-white/10 z-10">
+                                                {forecast.map((f, idx) => (
+                                                    <div key={idx} className="flex items-center justify-between py-0.5 group transition-all">
+                                                        <div className="flex items-center gap-1.5 w-16">
+                                                            <span className="text-[11px] font-black">{f.day}</span>
+                                                            <span className="text-[11px] font-black">{f.date}</span>
+                                                        </div>
+                                                        <div className="flex-1 flex justify-end gap-3 mr-4">
+                                                            <span className="text-[11px] font-black opacity-30 w-7 text-right">{f.min}°</span>
+                                                            <span className="text-[11px] font-black w-7 text-right">{f.max}°</span>
+                                                        </div>
+                                                        <div className="w-5 flex justify-end">
+                                                            <f.icon size={15} className={`${f.color} drop-shadow-sm`} />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                            </WidgetWrapper>
+                        ))}
+
+                        {isEditing && (
+                            <button onClick={() => setIsSettingsOpen(true)} className="fixed bottom-10 right-10 bg-blue-600 text-white p-5 rounded-full shadow-2xl hover:scale-110 active:scale-90 z-[90]"><Plus size={28}/></button>
+                        )}
+
+                        <Modal isOpen={!!currentFolderId} onClose={() => setCurrentFolderId(null)} title={activeFolder?.title || 'Carpeta'}>
+                            <div className="grid grid-cols-4 gap-4 min-h-[100px] items-start">
+                                {(activeFolder?.data.items || []).map((subItem) => (
+                                    subItem.docType 
+                                        ? <CloudDocWidget key={subItem.id} title={subItem.title} data={subItem} compact onMouseDown={(e) => handleMouseDownInFolder(e, subItem)} />
+                                        : <ShortcutWidget key={subItem.id} title={subItem.title} data={subItem} compact onMouseDown={(e) => handleMouseDownInFolder(e, subItem)} />
+                                ))}
+                                <button 
+                                    onClick={() => {
+                                        const url = prompt("URL del enlace:");
+                                        if (!url) return;
+                                        const name = prompt("Nombre:", extractNameFromUrl(url)) || extractNameFromUrl(url);
+                                        const isDoc = confirm("¿Es un documento de Google?");
+                                        const newItem = { id: Date.now(), title: name.toUpperCase(), url };
+                                        if(isDoc) newItem.docType = prompt("Tipo (text, sheet, slide):") || 'text';
+                                        const updatedFolder = { ...activeFolder, data: { ...activeFolder.data, items: [...(activeFolder.data.items || []), newItem] } };
+                                        updateItems(items.map(i => i.id === currentFolderId ? updatedFolder : i));
+                                    }}
+                                    className="flex flex-col items-center justify-center w-20 group"
+                                >
+                                    <div className="w-12 h-12 mb-1 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl flex items-center justify-center text-slate-400 group-hover:border-blue-500 group-hover:text-blue-500 transition-all">
+                                        <Plus size={24} />
+                                    </div>
+                                    <span className="text-[9px] font-black uppercase opacity-40">Añadir</span>
+                                </button>
+                            </div>
+                        </Modal>
+                    </main>
+
+                    <Modal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} title="Añadir Elementos">
+                        <div className="grid grid-cols-2 gap-3">
+                            {[
+                                {t: 'widget-clock', l: 'Reloj'}, {t: 'widget-note', l: 'Nota'}, 
+                                {t: 'widget-todo', l: 'Tareas'}, {t: 'widget-calendar', l: 'Calendario'},
+                                {t: 'widget-weather', l: 'Clima'}
+                            ].map(w => (
+                                <button key={w.t} onClick={() => { addItem(w.t, w.t === 'widget-calendar' ? {url: '...', zoom: 1.2} : {}); setIsSettingsOpen(false); }} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl text-[10px] font-black uppercase hover:bg-blue-50 dark:hover:bg-blue-900/30 text-center dark:text-white border border-transparent transition-all">Añadir {w.l}</button>
+                            ))}
+                        </div>
+                    </Modal>
+                </div>
+            );
+        }
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
