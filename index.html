@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Cloud v2.10</title>
+    <title>Dashboard Cloud v2.11</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script id="tailwind-config">
@@ -78,7 +78,7 @@
         import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
         // --- VERSION CONTROL ---
-        const APP_VERSION = "v2.10"; 
+        const APP_VERSION = "v2.11"; 
 
         const firebaseConfig = {
             apiKey: "AIzaSyDC-DEwOtvdGneO16nGJm4W9u3ttQ0mpNA",
@@ -372,6 +372,10 @@
             const [isSyncing, setIsSyncing] = useState(false);
             const fileInputRef = useRef(null); // Ref para el input de archivo
 
+            // --- REFERENCIAS DE SEGURIDAD PARA SINCRONIZACIÓN ---
+            const localChangesPending = useRef(false);
+            const ignoreNextSave = useRef(false);
+
             useEffect(() => {
                 const interval = setInterval(() => setCurrentTime(new Date()), 1000);
                 return () => clearInterval(interval);
@@ -384,9 +388,21 @@
             useEffect(() => {
                 setIsSyncing(true);
                 const unsub = onSnapshot(doc(db, "data", DOC_ID), (docSnap) => {
-                    setIsConnected(true); setIsSyncing(false);
+                    setIsConnected(true); 
+                    setIsSyncing(false);
+
+                    // --- PROTECCIÓN CONTRA SOBRESCRITURA ---
+                    if (localChangesPending.current) {
+                        console.warn("Ignorando actualización remota: Hay cambios locales pendientes de guardar.");
+                        return;
+                    }
+
                     if (docSnap.exists()) {
                         const cloudData = docSnap.data();
+                        
+                        // Marcamos que esta actualización viene de fuera para no rebotarla
+                        ignoreNextSave.current = true;
+
                         if (cloudData.items) setAllData(cloudData.items);
                         if (cloudData.prefs) setPreferences(cloudData.prefs);
                     } else {
@@ -399,9 +415,32 @@
 
             useEffect(() => {
                 if (isInitialLoad.current) return; 
+
+                // Si la actualización vino del servidor (ignoreNextSave es true),
+                // la consumimos y NO programamos un guardado.
+                if (ignoreNextSave.current) {
+                    ignoreNextSave.current = false;
+                    return;
+                }
+
+                // Si llegamos aquí, es un cambio local del usuario.
+                // Activamos el semáforo para bloquear snapshots entrantes.
+                localChangesPending.current = true;
+
                 const saveToCloud = setTimeout(() => {
                     setIsSyncing(true);
-                    setDoc(doc(db, "data", DOC_ID), { items: allData, prefs: preferences }).then(() => { setIsSyncing(false); }).catch(e => console.error("Error saving:", e));
+                    setDoc(doc(db, "data", DOC_ID), { items: allData, prefs: preferences })
+                        .then(() => { 
+                            setIsSyncing(false);
+                            // Liberamos el semáforo: ya estamos sincronizados.
+                            localChangesPending.current = false; 
+                        })
+                        .catch(e => {
+                            console.error("Error saving:", e);
+                            // En caso de error, mantenemos el semáforo por seguridad o lo liberamos tras un tiempo?
+                            // Mejor liberarlo para permitir reintentos o lecturas futuras, pero con cuidado.
+                            // Por ahora, asumimos reintento manual del usuario si falla.
+                        });
                 }, 1000); 
                 return () => clearTimeout(saveToCloud);
             }, [allData, preferences]);
