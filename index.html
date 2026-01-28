@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Cloud v2.13</title>
+    <title>Dashboard Cloud v2.14</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script id="tailwind-config">
@@ -78,7 +78,7 @@
         import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
         // --- VERSION CONTROL ---
-        const APP_VERSION = "v2.13"; 
+        const APP_VERSION = "v2.14"; 
 
         const firebaseConfig = {
             apiKey: "AIzaSyDC-DEwOtvdGneO16nGJm4W9u3ttQ0mpNA",
@@ -866,12 +866,23 @@
                             title={activeFolder?.title || 'Carpeta'}
                             headerRight={
                                 <button 
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
                                         const itemsToOpen = activeFolder?.data.items || [];
                                         if (itemsToOpen.length === 0) return;
-                                        itemsToOpen.forEach(item => {
-                                            if(item.url) window.open(item.url.startsWith('http') ? item.url : 'https://' + item.url, '_blank');
-                                        });
+                                        
+                                        // Usamos un bucle robusto para asegurar que intente abrir todos
+                                        for (const item of itemsToOpen) {
+                                            if(item && item.url && typeof item.url === 'string') {
+                                                try {
+                                                    const finalUrl = item.url.startsWith('http') ? item.url : 'https://' + item.url;
+                                                    window.open(finalUrl, '_blank');
+                                                } catch (err) {
+                                                    console.error("Error abriendo url", err);
+                                                }
+                                            }
+                                        }
                                     }}
                                     className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg transition-colors mr-2 flex items-center gap-1"
                                     title="Abrir todo"
