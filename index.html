@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Cloud v1.03</title>
+    <title>Dashboard Cloud v2.07</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script id="tailwind-config">
@@ -75,11 +75,10 @@
 
         // --- FIREBASE CONFIGURATION ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
         import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
         // --- VERSION CONTROL ---
-        const APP_VERSION = "v1.03"; 
+        const APP_VERSION = "v2.07"; 
 
         const firebaseConfig = {
             apiKey: "AIzaSyDC-DEwOtvdGneO16nGJm4W9u3ttQ0mpNA",
@@ -91,11 +90,10 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
         const db = getFirestore(app);
         
         // --- DB Version ---
-        const DOC_ID = "main_dashboard_v1_01_prod"; 
+        const DOC_ID = "main_dashboard_v7"; 
 
         // --- Utilidades ---
         const MIN_SIZE = 100; 
@@ -372,8 +370,6 @@
             const [currentTime, setCurrentTime] = useState(new Date());
             const [isConnected, setIsConnected] = useState(false);
             const [isSyncing, setIsSyncing] = useState(false);
-            const [user, setUser] = useState(null);
-            const [isOffline, setIsOffline] = useState(false); // Estado para modo offline
             const fileInputRef = useRef(null); // Ref para el input de archivo
 
             useEffect(() => {
@@ -385,107 +381,30 @@
             const [preferences, setPreferences] = useState(DEFAULT_PREFS);
             const isInitialLoad = useRef(true);
 
-            // --- AUTH & DATA SYNC MIGRATION FIX ---
             useEffect(() => {
-                const initAuth = async () => {
-                    try {
-                        await signInAnonymously(auth);
-                    } catch (error) {
-                        console.warn("Auth failed, falling back to offline mode.");
-                        setIsOffline(true);
-                        setIsConnected(false);
+                setIsSyncing(true);
+                const unsub = onSnapshot(doc(db, "data", DOC_ID), (docSnap) => {
+                    setIsConnected(true); setIsSyncing(false);
+                    if (docSnap.exists()) {
+                        const cloudData = docSnap.data();
+                        if (cloudData.items) setAllData(cloudData.items);
+                        if (cloudData.prefs) setPreferences(cloudData.prefs);
+                    } else {
+                         setDoc(doc(db, "data", DOC_ID), { items: DEFAULTS, prefs: DEFAULT_PREFS });
                     }
-                };
-                initAuth();
-                
-                const unsubscribeAuth = onAuthStateChanged(auth, (u) => {
-                    if (u) {
-                        setUser(u);
-                        setIsOffline(false);
-                        setIsConnected(true);
-                    }
-                });
-                return () => unsubscribeAuth();
+                    isInitialLoad.current = false;
+                }, (error) => { console.error("Error connecting to DB:", error); setIsConnected(false); });
+                return () => unsub();
             }, []);
 
             useEffect(() => {
-                // Si tenemos usuario, usamos la nube
-                if (user) {
-                    setIsSyncing(true);
-                    const unsub = onSnapshot(doc(db, "data", DOC_ID), (docSnap) => {
-                        setIsConnected(true); setIsSyncing(false);
-                        if (docSnap.exists()) {
-                            const cloudData = docSnap.data();
-                            if (cloudData.items) setAllData(cloudData.items);
-                            if (cloudData.prefs) setPreferences(cloudData.prefs);
-                            isInitialLoad.current = false;
-                        } else {
-                            // --- MIGRATION BRIDGE ---
-                            const localDataStr = localStorage.getItem('dashboard-data-v5-pixel');
-                            const localPrefsStr = localStorage.getItem('dashboard-prefs');
-                            
-                            let dataToUpload = DEFAULTS;
-                            let prefsToUpload = DEFAULT_PREFS;
-                            
-                            if (localDataStr) {
-                                try { dataToUpload = JSON.parse(localDataStr); } catch(e){}
-                            }
-                            if (localPrefsStr) {
-                                try { prefsToUpload = JSON.parse(localPrefsStr); } catch(e){}
-                            }
-
-                            setDoc(doc(db, "data", DOC_ID), { items: dataToUpload, prefs: prefsToUpload });
-                            setAllData(dataToUpload);
-                            setPreferences(prefsToUpload);
-                            isInitialLoad.current = false;
-                        }
-                    }, (error) => { 
-                        console.error("Error connecting to DB:", error); 
-                        setIsConnected(false);
-                        // Fallback opcional si falla la lectura pero teníamos usuario...
-                    });
-                    return () => unsub();
-                } 
-                // Si estamos Offline (fallo auth), usamos localStorage
-                else if (isOffline) {
-                    const localDataStr = localStorage.getItem('dashboard-data-v5-pixel');
-                    const localPrefsStr = localStorage.getItem('dashboard-prefs');
-                    
-                    if (localDataStr) {
-                         try { setAllData(JSON.parse(localDataStr)); } catch(e){}
-                    }
-                    if (localPrefsStr) {
-                         try { setPreferences(JSON.parse(localPrefsStr)); } catch(e){}
-                    }
-                    isInitialLoad.current = false;
-                    setIsSyncing(false);
-                }
-            }, [user, isOffline]);
-
-            useEffect(() => {
                 if (isInitialLoad.current) return; 
-
-                const saveData = async () => {
+                const saveToCloud = setTimeout(() => {
                     setIsSyncing(true);
-                    try {
-                        if (user) {
-                             await setDoc(doc(db, "data", DOC_ID), { items: allData, prefs: preferences });
-                        } else if (isOffline) {
-                             localStorage.setItem('dashboard-data-v5-pixel', JSON.stringify(allData));
-                             localStorage.setItem('dashboard-prefs', JSON.stringify(preferences));
-                             // Simular delay para feedback visual
-                             await new Promise(r => setTimeout(r, 500));
-                        }
-                    } catch(e) {
-                        console.error("Error saving:", e);
-                    } finally {
-                        setIsSyncing(false);
-                    }
-                };
-
-                const timeout = setTimeout(saveData, 1000); 
-                return () => clearTimeout(timeout);
-            }, [allData, preferences, user, isOffline]);
+                    setDoc(doc(db, "data", DOC_ID), { items: allData, prefs: preferences }).then(() => { setIsSyncing(false); }).catch(e => console.error("Error saving:", e));
+                }, 1000); 
+                return () => clearTimeout(saveToCloud);
+            }, [allData, preferences]);
 
             useEffect(() => { localStorage.setItem('dashboard-mode', mode); }, [mode]);
             
@@ -723,10 +642,9 @@
                         <div className="flex items-center gap-3 flex-1 min-w-0 mr-2">
                             <button onClick={() => setCurrentFolderId(null)} className="font-black text-slate-800 dark:text-white uppercase tracking-tighter mr-2 hover:opacity-70 transition-opacity text-xl flex items-center gap-2 shrink-0" style={{ fontFamily: "'Georgia', serif" }}>
                                 DASHBOARD
-                                <span className="text-[10px] opacity-40 font-sans font-normal mt-1">{APP_VERSION}</span>
-                                <div className="text-[9px] flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded-full font-sans tracking-normal opacity-50 ml-1">
+                                <div className="text-[9px] flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded-full font-sans tracking-normal opacity-50">
                                     {isConnected ? <Wifi size={10} className="text-green-400" /> : <WifiOff size={10} className="text-red-400" />}
-                                    {isSyncing ? "GUARDANDO..." : (isConnected ? "EN LÍNEA" : "OFFLINE (LOCAL)")}
+                                    {isSyncing ? "GUARDANDO..." : "EN LÍNEA"}
                                 </div>
                             </button>
                             
@@ -921,7 +839,7 @@
                         </Modal>
                     </main>
 
-                    <Modal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} title="Añadir Elementos">
+                    <Modal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} title={"A\u00F1adir Elementos"}>
                         <div className="grid grid-cols-2 gap-3">
                             {[
                                 {t: 'widget-clock', l: 'Reloj'}, {t: 'widget-note', l: 'Nota'}, 
