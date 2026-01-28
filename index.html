@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Cloud v2.07</title>
+    <title>Dashboard Cloud v2.08</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script id="tailwind-config">
@@ -78,7 +78,7 @@
         import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
         // --- VERSION CONTROL ---
-        const APP_VERSION = "v2.07"; 
+        const APP_VERSION = "v2.08"; 
 
         const firebaseConfig = {
             apiKey: "AIzaSyDC-DEwOtvdGneO16nGJm4W9u3ttQ0mpNA",
@@ -641,7 +641,7 @@
                     <header className="fixed top-0 left-0 right-0 z-[150] px-4 py-2 flex items-center justify-between bg-white/60 dark:bg-black/70 backdrop-blur-xl border-b border-white/10 h-14">
                         <div className="flex items-center gap-3 flex-1 min-w-0 mr-2">
                             <button onClick={() => setCurrentFolderId(null)} className="font-black text-slate-800 dark:text-white uppercase tracking-tighter mr-2 hover:opacity-70 transition-opacity text-xl flex items-center gap-2 shrink-0" style={{ fontFamily: "'Georgia', serif" }}>
-                                DASHBOARD
+                                DASHBOARD <span className="text-[10px] opacity-40 font-sans align-top ml-1 tracking-widest">{APP_VERSION}</span>
                                 <div className="text-[9px] flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded-full font-sans tracking-normal opacity-50">
                                     {isConnected ? <Wifi size={10} className="text-green-400" /> : <WifiOff size={10} className="text-red-400" />}
                                     {isSyncing ? "GUARDANDO..." : "EN LÍNEA"}
@@ -713,7 +713,15 @@
                                 onDelete={id => updateItems(items.filter(i => i.id !== id))} 
                                 onEditProperties={it => {
                                     const t = prompt("Nuevo nombre:", it.title);
-                                    if(t) updateItems(items.map(i => i.id === it.id ? {...i, title: t.toUpperCase()} : i));
+                                    let updatedItem = { ...it };
+                                    if (t !== null) {
+                                        updatedItem.title = t.toUpperCase();
+                                        if (it.type === 'widget-calendar') {
+                                            const z = prompt("Nivel de zoom/tamaño texto (ej: 0.8 para más pequeño, 1.2 para más grande):", it.data.zoom || 1);
+                                            if (z !== null) updatedItem.data = { ...it.data, zoom: parseFloat(z) || 1 };
+                                        }
+                                        updateItems(items.map(i => i.id === it.id ? updatedItem : i));
+                                    }
                                 }}
                                 onMouseDown={handleMouseDown}
                                 onResizeStart={(e, id) => { 
