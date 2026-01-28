@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Cloud</title>
+    <title>Dashboard Cloud v2.07</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script id="tailwind-config">
@@ -76,6 +76,9 @@
         // --- FIREBASE CONFIGURATION ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
         import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+        // --- VERSION CONTROL ---
+        const APP_VERSION = "v2.07"; 
 
         const firebaseConfig = {
             apiKey: "AIzaSyDC-DEwOtvdGneO16nGJm4W9u3ttQ0mpNA",
@@ -461,33 +464,35 @@
                     const tailwindConfigContent = document.getElementById('tailwind-config').innerText;
                     
                     const htmlParts = [
-                        '<!DOCTYPE html>', '<html lang="es">', '<head>', '    <meta charset="UTF-8">', '    <title>Dashboard Cloud</title>',
+                        '<!DOCTYPE html>', '<html lang="es">', '<head>', '    <meta charset="UTF-8">', '    <title>Dashboard Cloud ' + APP_VERSION + '</title>',
                         '    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">',
-                        '    <script src="https://cdn.tailwindcss.com"><\/script>',
-                        '    <script id="tailwind-config">' + tailwindConfigContent.replace(/<\/script/g, '<\\/script') + '<\/script>',
-                        '    <script type="importmap">{"imports":{"react":"https://esm.sh/react@18.2.0","react-dom/client":"https://esm.sh/react-dom@18.2.0/client","lucide-react":"https://esm.sh/lucide-react@0.292.0"}}<\/script>',
-                        '    <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>',
-                        '    <style id="main-styles">' + styleContent + '<\/style>',
+                        '    <script src="https://cdn.tailwindcss.com"><' + '/script>',
+                        '    <script id="tailwind-config">' + tailwindConfigContent.replace(new RegExp("</" + "script", "g"), '<' + '\\/script') + '<' + '/script>',
+                        '    <script type="importmap">{"imports":{"react":"https://esm.sh/react@18.2.0","react-dom/client":"https://esm.sh/react-dom@18.2.0/client","lucide-react":"https://esm.sh/lucide-react@0.292.0"}}<' + '/script>',
+                        '    <script src="https://unpkg.com/@babel/standalone/babel.min.js"><' + '/script>',
+                        '    <style id="main-styles">' + styleContent + '<' + '/style>',
                         '    <script>',
                         '        const theme = ' + JSON.stringify(preferences.theme) + ';',
                         '        if (theme === "dark" || theme === "mid-dark") document.documentElement.classList.add("dark");',
                         '        document.documentElement.classList.add("theme-" + theme);',
-                        '    <\/script>',
+                        '    <' + '/script>',
                         '</head>',
                         '<body>',
                         '    <div id="root"></div>',
                         '    <script id="initial-setup">',
                         '       window.INITIAL_DATA = ' + JSON.stringify(DEFAULTS) + ';',
                         '       window.INITIAL_PREFS = ' + JSON.stringify(DEFAULT_PREFS) + ';',
-                        '    <\/script>',
-                        '    <script type="text/babel" data-type="module" id="app-code">' + scriptContent.replace(/<\/script/g, '<\\/script') + '<\/script>',
+                        '    <' + '/script>',
+                        '    <script type="text/babel" data-type="module" id="app-code">' + scriptContent.replace(new RegExp("</" + "script", "g"), '<' + '\\/script') + '<' + '/script>',
                         '</body>',
                         '</html>'
                     ];
 
                     const fullHtml = htmlParts.join('\n');
                     const blob = new Blob([fullHtml], { type: 'text/html' });
-                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Dashboard_v1.56_Cloud.html'; a.click();
+                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); 
+                    a.download = `Dashboard_${APP_VERSION}_Cloud.html`; 
+                    a.click();
                 } catch (e) { alert('Error al exportar: ' + e.message); }
             };
 
@@ -495,30 +500,40 @@
                 const file = event.target.files[0];
                 if (!file) return;
 
+                if (!confirm("¿Estás seguro de que quieres restaurar este backup? Esto sobrescribirá la configuración actual en la nube con los datos del archivo.")) {
+                     event.target.value = ''; 
+                     return;
+                }
+
                 const reader = new FileReader();
                 reader.onload = (e) => {
+                    const content = e.target.result;
                     try {
-                        const content = e.target.result;
+                        // Intentar buscar el formato HTML exportado (más robusto)
+                        const dataMatch = content.match(/window\.INITIAL_DATA\s*=\s*({[\s\S]*?});/);
+                        const prefsMatch = content.match(/window\.INITIAL_PREFS\s*=\s*({[\s\S]*?});/);
+                        
                         let importedData = null;
                         let importedPrefs = null;
 
-                        if (file.name.endsWith('.json')) {
-                            const parsed = JSON.parse(content);
-                            importedData = parsed.items || parsed;
-                            importedPrefs = parsed.prefs;
-                        } else if (file.name.endsWith('.html')) {
-                            const dataMatch = content.match(/window\.INITIAL_DATA\s*=\s*({[\s\S]*?});/);
-                            const prefsMatch = content.match(/window\.INITIAL_PREFS\s*=\s*({[\s\S]*?});/);
-                            
-                            if (dataMatch) importedData = JSON.parse(dataMatch[1]);
-                            if (prefsMatch) importedPrefs = JSON.parse(prefsMatch[1]);
+                        if (dataMatch && dataMatch[1]) {
+                            importedData = JSON.parse(dataMatch[1]);
+                        } else {
+                            // Si no encuentra el patrón HTML, intentar parsear todo el archivo como JSON
+                            importedData = JSON.parse(content);
+                        }
+
+                        if (prefsMatch && prefsMatch[1]) {
+                            importedPrefs = JSON.parse(prefsMatch[1]);
+                        } else if (importedData && importedData.prefs) {
+                             // Caso donde el JSON raíz ya tenga prefs
+                            importedPrefs = importedData.prefs;
                         }
 
                         if (importedData) {
-                            if (confirm("¿Sobreescribir la configuración actual con el archivo importado? Esto actualizará la nube.")) {
-                                setAllData(importedData);
-                                if (importedPrefs) setPreferences(importedPrefs);
-                            }
+                             setAllData(importedData);
+                             if (importedPrefs) setPreferences(importedPrefs);
+                             alert("Datos importados y restaurados en la nube correctamente.");
                         } else {
                             alert("No se encontraron datos válidos en el archivo.");
                         }
@@ -640,7 +655,7 @@
 
                             <button onClick={handleExportHtml} className="p-2 px-4 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-lg active:scale-95 transition-all ml-1 shrink-0"><Download size={16} /><span className="text-sm font-black uppercase hidden xl:inline">Exportar HTML</span></button>
 
-                            {/* Botón de Importar Restaurado */}
+                            {/* Botón de Importar Restaurado (Estilo original y funcionalidad simplificada) */}
                             <button onClick={() => fileInputRef.current.click()} className="p-2 px-4 rounded-full bg-orange-500 hover:bg-orange-600 text-white flex items-center gap-2 shadow-lg active:scale-95 transition-all ml-1 shrink-0">
                                 <Upload size={16} />
                                 <span className="text-sm font-black uppercase hidden xl:inline">Importar</span>
@@ -729,7 +744,7 @@
                                                 {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </div>
                                         )}
-                                        <div className="text-[13px] font-black uppercase opacity-60 pointer-events-none">
+                                        <div className="text-[10px] font-black uppercase opacity-60 pointer-events-none">
                                             {getFormattedDate(currentTime)}
                                         </div>
                                     </div>
@@ -824,7 +839,7 @@
                         </Modal>
                     </main>
 
-                    <Modal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} title="Añadir Elementos">
+                    <Modal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} title={"A\u00F1adir Elementos"}>
                         <div className="grid grid-cols-2 gap-3">
                             {[
                                 {t: 'widget-clock', l: 'Reloj'}, {t: 'widget-note', l: 'Nota'}, 
