@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Cloud v2.12</title>
+    <title>Dashboard Cloud v2.13</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script id="tailwind-config">
@@ -78,7 +78,7 @@
         import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
         // --- VERSION CONTROL ---
-        const APP_VERSION = "v2.12"; 
+        const APP_VERSION = "v2.13"; 
 
         const firebaseConfig = {
             apiKey: "AIzaSyDC-DEwOtvdGneO16nGJm4W9u3ttQ0mpNA",
@@ -280,14 +280,17 @@
             );
         };
 
-        const Modal = ({ isOpen, onClose, title, children }) => {
+        const Modal = ({ isOpen, onClose, title, children, headerRight }) => {
             if (!isOpen) return null;
             return (
                 <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={onClose}>
                     <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-800 overflow-hidden transform transition-all scale-100" onClick={e => e.stopPropagation()}>
                         <div className="flex justify-between items-center p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
                             <h3 className="text-sm font-black tracking-wider dark:text-white px-2">{title}</h3>
-                            <button onClick={onClose} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors dark:text-white"><X size={20} /></button>
+                            <div className="flex items-center gap-1">
+                                {headerRight}
+                                <button onClick={onClose} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors dark:text-white"><X size={20} /></button>
+                            </div>
                         </div>
                         <div className="p-6 overflow-y-auto max-h-[70vh]">{children}</div>
                     </div>
@@ -857,7 +860,27 @@
                             <button onClick={() => setIsSettingsOpen(true)} className="fixed bottom-10 right-10 bg-blue-600 text-white p-5 rounded-full shadow-2xl hover:scale-110 active:scale-90 z-[90]"><Plus size={28}/></button>
                         )}
 
-                        <Modal isOpen={!!currentFolderId} onClose={() => setCurrentFolderId(null)} title={activeFolder?.title || 'Carpeta'}>
+                        <Modal 
+                            isOpen={!!currentFolderId} 
+                            onClose={() => setCurrentFolderId(null)} 
+                            title={activeFolder?.title || 'Carpeta'}
+                            headerRight={
+                                <button 
+                                    onClick={() => {
+                                        const itemsToOpen = activeFolder?.data.items || [];
+                                        if (itemsToOpen.length === 0) return;
+                                        itemsToOpen.forEach(item => {
+                                            if(item.url) window.open(item.url.startsWith('http') ? item.url : 'https://' + item.url, '_blank');
+                                        });
+                                    }}
+                                    className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg transition-colors mr-2 flex items-center gap-1"
+                                    title="Abrir todo"
+                                >
+                                    <span className="text-[10px] font-black uppercase hidden sm:inline">Abrir Todo</span>
+                                    <ExternalLink size={16} />
+                                </button>
+                            }
+                        >
                             <div className="grid grid-cols-4 gap-4 min-h-[100px] items-start">
                                 {(activeFolder?.data.items || []).map((subItem) => (
                                     subItem.docType 
