@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Cloud v2.16</title>
+    <title>Dashboard Cloud v2.17</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script id="tailwind-config">
@@ -78,7 +78,7 @@
         import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
         // --- VERSION CONTROL ---
-        const APP_VERSION = "v2.16"; 
+        const APP_VERSION = "v2.17"; 
 
         const firebaseConfig = {
             apiKey: "AIzaSyDC-DEwOtvdGneO16nGJm4W9u3ttQ0mpNA",
@@ -352,7 +352,7 @@
                             <div className="absolute -top-3 -left-3 z-50 p-1.5 bg-white dark:bg-slate-800 rounded-full shadow-md border border-slate-200 dark:border-slate-700 cursor-move"><Grip size={14} className="text-slate-500" /></div>
                             <div className="absolute -top-3 -right-3 z-50 flex gap-1">
                                 <button onMouseDown={e => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onEditProperties(item); }} className="p-1.5 bg-blue-500 text-white rounded-full shadow-md hover:scale-110"><Settings size={14} /></button>
-                                <button onMouseDown={e => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onDelete(item.id); }} className="p-1.5 bg-red-500 text-white rounded-full shadow-md hover:scale-110"><Trash2 size={14} /></button>
+                                <button onMouseDown={e => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); if (confirm("¿Seguro que quieres borrar este elemento?")) onDelete(item.id); }} className="p-1.5 bg-red-500 text-white rounded-full shadow-md hover:scale-110"><Trash2 size={14} /></button>
                             </div>
                             {!isIconType && <div onMouseDown={(e) => { e.stopPropagation(); onResizeStart(e, item.id, 'se'); }} className="absolute -bottom-1 -right-1 w-4 h-4 bg-blue-500 rounded-full cursor-se-resize z-50 border-2 border-white flex items-center justify-center text-white"><Move size={10}/></div>}
                         </>
