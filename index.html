@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Cloud v2.17</title>
+    <title>Dashboard Cloud v2.18</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script id="tailwind-config">
@@ -78,7 +78,7 @@
         import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
         // --- VERSION CONTROL ---
-        const APP_VERSION = "v2.17"; 
+        const APP_VERSION = "v2.18"; 
 
         const firebaseConfig = {
             apiKey: "AIzaSyDC-DEwOtvdGneO16nGJm4W9u3ttQ0mpNA",
@@ -299,13 +299,46 @@
         };
 
         const ShortcutWidget = ({ data, title, compact = false, onNavigate, onMouseDown }) => {
-            const [iconUrl, setIconUrl] = useState(() => {
-                try { return `https://www.google.com/s2/favicons?domain=${new URL(data.url.startsWith('http') ? data.url : 'https://' + data.url).hostname}&sz=128`; } catch(e) { return 'https://cdn-icons-png.flaticon.com/512/1006/1006771.png'; }
-            });
+            const getHostname = (u) => {
+                try { return new URL(u.startsWith('http') ? u : 'https://' + u).hostname; } catch(e) { return ''; }
+            };
+            const hostname = getHostname(data.url);
+            
+            // Nueva lógica de iconos: Cascada de intentos
+            // 1. Clearbit: Logos de marca (bonitos para Dashboards)
+            // 2. DuckDuckGo: Muy bueno resolviendo favicons de subdominios (ej: web.whatsapp.com)
+            // 3. Google: El estándar, pero a veces falla con subdominios específicos
+            // 4. Genérico: Si todo falla
+            const getIconUrl = (source) => {
+                if (!hostname) return 'https://cdn-icons-png.flaticon.com/512/1006/1006771.png';
+                switch(source) {
+                    case 'clearbit': return `https://logo.clearbit.com/${hostname}`;
+                    case 'duckduckgo': return `https://icons.duckduckgo.com/ip3/${hostname}.ico`;
+                    case 'google': return `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`;
+                    default: return 'https://cdn-icons-png.flaticon.com/512/1006/1006771.png';
+                }
+            };
+
+            const [currentSource, setCurrentSource] = useState('clearbit');
+
+            const handleImgError = () => {
+                if (currentSource === 'clearbit') setCurrentSource('duckduckgo');
+                else if (currentSource === 'duckduckgo') setCurrentSource('google');
+                else if (currentSource === 'google') setCurrentSource('fallback');
+            };
+
+            // Resetear fuente si cambia la URL
+            useEffect(() => { setCurrentSource('clearbit'); }, [data.url]);
+
             return (
                 <a href={data.url.startsWith('http') ? data.url : 'https://' + data.url} target="_blank" rel="noopener noreferrer" onClick={onNavigate} onMouseDown={onMouseDown} onDragStart={e => e.preventDefault()} className={`flex flex-col items-center justify-center transition-transform hover:scale-110 group ${compact ? 'w-20 cursor-pointer' : 'h-full w-full p-1 cursor-pointer'}`}>
                     <div className={`${compact ? 'w-12 h-12' : 'w-14 h-14'} mb-1 drop-shadow-lg bg-white/50 dark:bg-slate-800/50 rounded-2xl flex items-center justify-center p-2 border border-white/20 pointer-events-none`}>
-                        <img src={iconUrl} alt="" className="w-full h-full object-contain" onError={() => setIconUrl('https://cdn-icons-png.flaticon.com/512/1006/1006771.png')} />
+                        <img 
+                            src={getIconUrl(currentSource)} 
+                            onError={handleImgError}
+                            alt="" 
+                            className="w-full h-full object-contain" 
+                        />
                     </div>
                     <span className="text-[11px] font-black text-slate-800 dark:text-white bg-white/60 dark:bg-black/40 rounded-full px-2 py-0.5 backdrop-blur-sm truncate max-w-full tracking-tighter pointer-events-none">{title}</span>
                 </a>
