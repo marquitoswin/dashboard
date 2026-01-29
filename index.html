@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Cloud v2.14</title>
+    <title>Dashboard Cloud v2.15</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script id="tailwind-config">
@@ -60,7 +60,7 @@
                { "id": "w-clock-w", "type": "widget-clock", "title": "Reloj", "x": 20, "y": 20, "w": 210, "h": 210, "data": { "isAnalog": false } },
                { "id": "w-note-w", "type": "widget-note", "title": "Notas Trabajo", "x": 20, "y": 240, "w": 210, "h": 210, "data": { "content": "Reunión a las 10:00..." } },
                { "id": "w-todo-w", "type": "widget-todo", "title": "Tareas Trabajo", "x": 20, "y": 460, "w": 210, "h": 250, "data": { "tasks": [{ "id": 1, "text": "Enviar informe mensual", "done": false }] } },
-               { "id": "w-calendar-w", "type": "widget-calendar", "title": "Outlook Calendar", "x": 250, "y": 20, "w": 400, "h": 400, "data": { "url": "https://calendar.google.com/calendar/embed?src=en.spain%23holiday%40group.v.calendar.google.com&ctz=Europe%2FMadrid", "zoom": 1.2 } },
+               { "id": "w-calendar-w", "type": "widget-calendar", "title": "Outlook (Configurar)", "x": 250, "y": 20, "w": 400, "h": 400, "data": { "url": "https://calendar.google.com/calendar/embed?src=en.spain%23holiday%40group.v.calendar.google.com&ctz=Europe%2FMadrid", "zoom": 1.2 } },
                { "id": "w-weather-w", "type": "widget-weather", "title": "MADRID", "x": 670, "y": 20, "w": 260, "h": 400, "data": {} }
            ]
        };
@@ -78,7 +78,7 @@
         import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
         // --- VERSION CONTROL ---
-        const APP_VERSION = "v2.14"; 
+        const APP_VERSION = "v2.15"; 
 
         const firebaseConfig = {
             apiKey: "AIzaSyDC-DEwOtvdGneO16nGJm4W9u3ttQ0mpNA",
@@ -495,6 +495,11 @@
                     newItem.title = name.toUpperCase(); newItem.data = { items: [] }; newItem.w = 100; newItem.h = 100;
                 } else if (type === 'widget-clock') { newItem.data = { isAnalog: false }; }
                 else if (type === 'widget-todo') { newItem.title = "TAREAS"; newItem.data = { tasks: [] }; newItem.w = 210; newItem.h = 250; }
+                else if (type === 'widget-calendar') {
+                    const u = prompt("URL del Calendario (Google/Outlook HTML):", customData.url || "");
+                    if (!u) return;
+                    newItem.data = { url: u, zoom: 1.2 };
+                }
                 
                 updateItems([...items, newItem]);
             };
@@ -759,8 +764,11 @@
                                     if (t !== null) {
                                         updatedItem.title = t;
                                         if (it.type === 'widget-calendar') {
+                                            const u = prompt("URL del Calendario:", it.data.url);
+                                            if (u !== null) updatedItem.data = { ...updatedItem.data, url: u };
+
                                             const z = prompt("Nivel de zoom/tamaño texto (ej: 0.8 para más pequeño, 1.2 para más grande):", it.data.zoom || 1);
-                                            if (z !== null) updatedItem.data = { ...it.data, zoom: parseFloat(z) || 1 };
+                                            if (z !== null) updatedItem.data = { ...updatedItem.data, zoom: parseFloat(z) || 1 };
                                         }
                                         updateItems(items.map(i => i.id === it.id ? updatedItem : i));
                                     }
