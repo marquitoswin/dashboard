@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Cloud v2.19</title>
+    <title>Dashboard Cloud v2.20</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script id="tailwind-config">
@@ -78,7 +78,7 @@
         import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
         // --- VERSION CONTROL ---
-        const APP_VERSION = "v2.19"; 
+        const APP_VERSION = "v2.20"; 
 
         const firebaseConfig = {
             apiKey: "AIzaSyDC-DEwOtvdGneO16nGJm4W9u3ttQ0mpNA",
@@ -260,6 +260,15 @@
                 const updatedItems = items.map(i => i.id === item.id ? { ...i, data: { ...i.data, tasks: tasks.filter(t => t.id !== taskId) } } : i);
                 updateItems(updatedItems);
             };
+            // --- NUEVO: Función para editar tarea ---
+            const editTask = (taskId, currentText) => {
+                const newText = prompt("Editar tarea:", currentText);
+                if (newText !== null && newText.trim() !== "") {
+                    const updatedItems = items.map(i => i.id === item.id ? { ...i, data: { ...i.data, tasks: tasks.map(t => t.id === taskId ? { ...t, text: newText.trim() } : t) } } : i);
+                    updateItems(updatedItems);
+                }
+            };
+
             return (
                 <div className="flex flex-col h-full p-4 overflow-hidden">
                     <div className="flex items-center gap-2 mb-3 text-blue-500 font-black pointer-events-none"><Check size={14} /><h3 className="text-[10px] tracking-widest">{item.title || 'TAREAS'}</h3></div>
@@ -267,7 +276,14 @@
                         {tasks.map(t => (
                             <div key={t.id} className="flex items-center gap-2 group">
                                 <button onClick={(e) => { e.stopPropagation(); toggleTask(t.id); }} className={`w-4 h-4 rounded flex items-center justify-center border transition-all ${t.done ? 'bg-blue-500 border-blue-500' : 'border-slate-400 dark:border-slate-600 hover:border-blue-500'}`}>{t.done && <Check size={10} className="text-white" />}</button>
-                                <span className={`flex-1 text-xs font-medium truncate ${t.done ? 'line-through opacity-40' : 'dark:text-slate-200'}`}>{t.text}</span>
+                                {/* AHORA EL TEXTO ES CLICKABLE PARA EDITAR */}
+                                <span 
+                                    onClick={(e) => { e.stopPropagation(); editTask(t.id, t.text); }}
+                                    className={`flex-1 text-xs font-medium truncate cursor-pointer hover:text-blue-500 transition-colors ${t.done ? 'line-through opacity-40' : 'dark:text-slate-200'}`}
+                                    title="Click para editar"
+                                >
+                                    {t.text}
+                                </span>
                                 <button onClick={(e) => { e.stopPropagation(); deleteTask(t.id); }} className="opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all"><Trash2 size={12} /></button>
                             </div>
                         ))}
