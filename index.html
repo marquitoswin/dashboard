@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Cloud v2.18</title>
+    <title>Dashboard Cloud v2.19</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script id="tailwind-config">
@@ -78,7 +78,7 @@
         import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
         // --- VERSION CONTROL ---
-        const APP_VERSION = "v2.18"; 
+        const APP_VERSION = "v2.19"; 
 
         const firebaseConfig = {
             apiKey: "AIzaSyDC-DEwOtvdGneO16nGJm4W9u3ttQ0mpNA",
@@ -304,31 +304,49 @@
             };
             const hostname = getHostname(data.url);
             
-            // Nueva lógica de iconos: Cascada de intentos
-            // 1. Clearbit: Logos de marca (bonitos para Dashboards)
-            // 2. DuckDuckGo: Muy bueno resolviendo favicons de subdominios (ej: web.whatsapp.com)
-            // 3. Google: El estándar, pero a veces falla con subdominios específicos
-            // 4. Genérico: Si todo falla
+            // --- LÓGICA DE ICONOS HÍBRIDA (V2.19) ---
+            // 1. Por defecto usamos GOOGLE: Es el único que funciona bien en redes de trabajo (firewalls).
+            // 2. Solo para WHATSAPP y GMAIL, intentamos primero DuckDuckGo (porque el de Google es feo).
+            //    Si DuckDuckGo falla (estamos en el trabajo), volverá a Google automáticamente.
+            
+            const getInitialSource = (host) => {
+                if (host.includes('whatsapp') || host.includes('mail.google')) return 'duckduckgo';
+                return 'google';
+            };
+
+            const [currentSource, setCurrentSource] = useState(() => getInitialSource(hostname));
+
             const getIconUrl = (source) => {
                 if (!hostname) return 'https://cdn-icons-png.flaticon.com/512/1006/1006771.png';
                 switch(source) {
-                    case 'clearbit': return `https://logo.clearbit.com/${hostname}`;
-                    case 'duckduckgo': return `https://icons.duckduckgo.com/ip3/${hostname}.ico`;
                     case 'google': return `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`;
+                    case 'duckduckgo': return `https://icons.duckduckgo.com/ip3/${hostname}.ico`;
+                    case 'clearbit': return `https://logo.clearbit.com/${hostname}`;
                     default: return 'https://cdn-icons-png.flaticon.com/512/1006/1006771.png';
                 }
             };
 
-            const [currentSource, setCurrentSource] = useState('clearbit');
-
             const handleImgError = () => {
-                if (currentSource === 'clearbit') setCurrentSource('duckduckgo');
-                else if (currentSource === 'duckduckgo') setCurrentSource('google');
-                else if (currentSource === 'google') setCurrentSource('fallback');
+                // Sistema de cascada inteligente:
+                if (currentSource === 'google') {
+                    // Si Google falla, intentamos DuckDuckGo
+                    setCurrentSource('duckduckgo');
+                } else if (currentSource === 'duckduckgo') {
+                    // Si DDG falla:
+                    // - Si era nuestra primera opción (WhatsApp/Gmail), pasamos a Google (seguro).
+                    // - Si ya veníamos de Google, intentamos Clearbit.
+                    if (getInitialSource(hostname) === 'duckduckgo') setCurrentSource('google');
+                    else setCurrentSource('clearbit');
+                } else if (currentSource === 'clearbit') {
+                    // Si Clearbit falla, fallback final.
+                    setCurrentSource('fallback');
+                } else {
+                    setCurrentSource('fallback');
+                }
             };
 
             // Resetear fuente si cambia la URL
-            useEffect(() => { setCurrentSource('clearbit'); }, [data.url]);
+            useEffect(() => { setCurrentSource(getInitialSource(hostname)); }, [data.url]);
 
             return (
                 <a href={data.url.startsWith('http') ? data.url : 'https://' + data.url} target="_blank" rel="noopener noreferrer" onClick={onNavigate} onMouseDown={onMouseDown} onDragStart={e => e.preventDefault()} className={`flex flex-col items-center justify-center transition-transform hover:scale-110 group ${compact ? 'w-20 cursor-pointer' : 'h-full w-full p-1 cursor-pointer'}`}>
