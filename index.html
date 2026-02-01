@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Cloud v2.20</title>
+    <title>Dashboard Cloud v2.21</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script id="tailwind-config">
@@ -19,7 +19,8 @@
         }
     </script>
     <script type="importmap">{"imports":{"react":"https://esm.sh/react@18.2.0","react-dom/client":"https://esm.sh/react-dom@18.2.0/client","lucide-react":"https://esm.sh/lucide-react@0.292.0"}}</script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- CORRECCIÓN IMPORTANTE: Fijamos la versión de Babel para evitar errores por actualizaciones automáticas -->
+    <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
     <style id="main-styles">
         body { margin: 0; overflow: hidden; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
@@ -78,7 +79,7 @@
         import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
         // --- VERSION CONTROL ---
-        const APP_VERSION = "v2.20"; 
+        const APP_VERSION = "v2.21"; 
 
         const firebaseConfig = {
             apiKey: "AIzaSyDC-DEwOtvdGneO16nGJm4W9u3ttQ0mpNA",
