@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Cloud v2.23</title>
+    <title>Dashboard Cloud v2.24</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script id="tailwind-config">
@@ -19,7 +19,6 @@
         }
     </script>
     <script type="importmap">{"imports":{"react":"https://esm.sh/react@18.2.0","react-dom/client":"https://esm.sh/react-dom@18.2.0/client","lucide-react":"https://esm.sh/lucide-react@0.292.0"}}</script>
-    <!-- CORRECCIÓN IMPORTANTE: Fijamos la versión de Babel para evitar errores por actualizaciones automáticas -->
     <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
     <style id="main-styles">
         body { margin: 0; overflow: hidden; }
@@ -80,7 +79,7 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 
         // --- VERSION CONTROL ---
-        const APP_VERSION = "v2.23"; 
+        const APP_VERSION = "v2.24"; 
 
         const fallbackFirebaseConfig = {
             apiKey: "AIzaSyDC-DEwOtvdGneO16nGJm4W9u3ttQ0mpNA",
@@ -91,7 +90,8 @@
             appId: "1:786299628853:web:3437551c61855e2225b07c"
         };
 
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : fallbackFirebaseConfig;
+        const isProduction = typeof __firebase_config === 'undefined';
+        const firebaseConfig = !isProduction ? JSON.parse(__firebase_config) : fallbackFirebaseConfig;
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
@@ -101,12 +101,9 @@
         const DOC_ID = "main_dashboard_v7"; 
         
         const getDashboardDocRef = () => {
-            // Si estamos en el editor de código, usa la ruta segura que exige el entorno
-            if (typeof __firebase_config !== 'undefined') {
+            if (!isProduction) {
                 return doc(db, 'artifacts', appId, 'public', 'data', 'dashboards', DOC_ID);
             }
-            // En tu PRODUCCIÓN (cuando lo exportas y subes), usamos TU ruta original 
-            // para que recuperes todos los datos tal y como los tenías ayer.
             return doc(db, 'data', DOC_ID);
         };
 
@@ -443,7 +440,6 @@
             const [isSyncing, setIsSyncing] = useState(false);
             const fileInputRef = useRef(null);
             
-            // --- NUEVO ESTADO DE AUTENTICACIÓN ---
             const [user, setUser] = useState(null);
 
             const localChangesPending = useRef(false);
@@ -458,9 +454,11 @@
             const [preferences, setPreferences] = useState(DEFAULT_PREFS);
             const isInitialLoad = useRef(true);
 
-            // --- INICIALIZACIÓN AUTENTICACIÓN FIREBASE ---
+            // --- INICIALIZACIÓN AUTENTICACIÓN ---
             useEffect(() => {
                 const initAuth = async () => {
+                    if (isProduction) return; // En producción ya no exigimos Auth para que no se bloquee
+                    
                     try {
                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                             await signInWithCustomToken(auth, __initial_auth_token);
@@ -478,7 +476,8 @@
 
             // --- CARGA DE DATOS SEGUROS ---
             useEffect(() => {
-                if (!user) return; // REQUISITO OBLIGATORIO: Esperar autenticación
+                // Si estamos en desarrollo, esperamos al usuario. Si estamos en producción, pasamos de largo.
+                if (!isProduction && !user) return; 
 
                 setIsSyncing(true);
                 const unsub = onSnapshot(getDashboardDocRef(), (docSnap) => {
@@ -508,7 +507,8 @@
 
             // --- GUARDADO DE DATOS SEGURO ---
             useEffect(() => {
-                if (isInitialLoad.current || !user) return; 
+                if (isInitialLoad.current) return; 
+                if (!isProduction && !user) return;
 
                 if (ignoreNextSave.current) {
                     ignoreNextSave.current = false;
