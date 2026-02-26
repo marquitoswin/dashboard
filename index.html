@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Cloud v2.24</title>
+    <title>Dashboard Cloud v2.25</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script id="tailwind-config">
@@ -64,7 +64,14 @@
                { "id": "w-weather-w", "type": "widget-weather", "title": "MADRID", "x": 670, "y": 20, "w": 260, "h": 400, "data": {} }
            ]
        };
-       window.INITIAL_PREFS = {"bgType":"dynamic","bgImage":"","bgColor":"#0f172a","theme":"dark","searchEngine":"google"};
+       window.INITIAL_PREFS = {
+           "theme":"dark",
+           "searchEngine":"google",
+           "backgrounds": {
+               "home": { "bgType":"dynamic", "bgImage":"", "bgColor":"#0f172a" },
+               "work": { "bgType":"dynamic", "bgImage":"", "bgColor":"#0f172a" }
+           }
+       };
     </script>
     <script type="text/babel" data-type="module" id="app-code">
         import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -79,7 +86,7 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 
         // --- VERSION CONTROL ---
-        const APP_VERSION = "v2.24"; 
+        const APP_VERSION = "v2.25"; 
 
         const fallbackFirebaseConfig = {
             apiKey: "AIzaSyDC-DEwOtvdGneO16nGJm4W9u3ttQ0mpNA",
@@ -476,7 +483,6 @@
 
             // --- CARGA DE DATOS SEGUROS ---
             useEffect(() => {
-                // Si estamos en desarrollo, esperamos al usuario. Si estamos en producción, pasamos de largo.
                 if (!isProduction && !user) return; 
 
                 setIsSyncing(true);
@@ -540,10 +546,34 @@
                 if (preferences.theme === 'dark' || preferences.theme === 'mid-dark') root.classList.add('dark');
             }, [preferences.theme]);
 
+            // Helper para actualizar el fondo de pantalla de forma independiente
+            const updateActiveBackground = useCallback((newBgProps) => {
+                setPreferences(prev => {
+                    // Migración segura si la base de datos es antigua y no tiene 'backgrounds'
+                    const currentHome = prev.backgrounds?.home || { bgType: prev.bgType || 'dynamic', bgImage: prev.bgImage || '', bgColor: prev.bgColor || '#0f172a' };
+                    const currentWork = prev.backgrounds?.work || { bgType: prev.bgType || 'dynamic', bgImage: prev.bgImage || '', bgColor: prev.bgColor || '#0f172a' };
+                    
+                    return {
+                        ...prev,
+                        backgrounds: {
+                            home: mode === 'home' ? { ...currentHome, ...newBgProps } : currentHome,
+                            work: mode === 'work' ? { ...currentWork, ...newBgProps } : currentWork
+                        }
+                    };
+                });
+            }, [mode]);
+
             const currentBgStyle = useMemo(() => {
-                if (preferences.bgType === 'color') return { backgroundColor: preferences.bgColor };
-                let url = preferences.bgImage;
-                if (preferences.bgType === 'dynamic') {
+                // Recuperar el fondo específico del modo actual (home/work)
+                const activeBg = preferences.backgrounds?.[mode] || { 
+                    bgType: preferences.bgType || 'dynamic', 
+                    bgImage: preferences.bgImage || '', 
+                    bgColor: preferences.bgColor || '#0f172a' 
+                };
+
+                if (activeBg.bgType === 'color') return { backgroundColor: activeBg.bgColor };
+                let url = activeBg.bgImage;
+                if (activeBg.bgType === 'dynamic') {
                     const h = new Date().getHours();
                     if (h >= 6 && h < 9) url = "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=1920&q=80";
                     else if (h >= 9 && h < 18) url = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1920&q=80";
@@ -551,7 +581,7 @@
                     else url = "https://images.unsplash.com/photo-1477346611705-65d1883cee1e?auto=format&fit=crop&w=1920&q=80";
                 }
                 return { backgroundImage: `url(${url})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' };
-            }, [preferences]);
+            }, [preferences, mode]);
 
             const items = allData[mode] || [];
             const activeFolder = items.find(i => i.id === currentFolderId);
@@ -809,13 +839,19 @@
 
                         <div className="flex items-center gap-2 shrink-0">
                             <button onClick={() => setActiveMenu(activeMenu === 'bg' ? null : 'bg')} className="p-2.5 rounded-full hover:bg-white/20 text-slate-600 dark:text-slate-300" title="Fondo"><Wallpaper size={20} /></button>
-                            {activeMenu === 'bg' && (
-                                <div className="absolute top-full right-44 mt-2 bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 rounded-2xl p-3 min-w-[220px] z-[160] space-y-3">
-                                    <button onClick={() => { setPreferences({...preferences, bgType: 'dynamic'}); setActiveMenu(null); }} className="w-full text-left p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-[10px] font-black uppercase dark:text-white">Fondo Dinámico</button>
-                                    <input type="color" value={preferences.bgColor} onChange={(e) => setPreferences({...preferences, bgType: 'color', bgColor: e.target.value})} className="w-full h-8 rounded-lg cursor-pointer border-0 bg-transparent"/>
-                                    <button onClick={() => { const u = prompt("URL de Imagen:"); if(u) setPreferences({...preferences, bgType: 'image', bgImage: u}); setActiveMenu(null); }} className="w-full text-left p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-[10px] font-black uppercase dark:text-white text-purple-500">URL Imagen</button>
-                                </div>
-                            )}
+                            {activeMenu === 'bg' && (() => {
+                                const activeBg = preferences.backgrounds?.[mode] || { bgType: preferences.bgType || 'dynamic', bgImage: preferences.bgImage || '', bgColor: preferences.bgColor || '#0f172a' };
+                                return (
+                                    <div className="absolute top-full right-44 mt-2 bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 rounded-2xl p-3 min-w-[220px] z-[160] space-y-3">
+                                        <div className="text-[10px] font-black uppercase text-slate-400 mb-1 px-1 border-b border-slate-200 dark:border-slate-700 pb-2">
+                                            Fondo para {mode === 'home' ? 'CASA' : 'TRABAJO'}
+                                        </div>
+                                        <button onClick={() => { updateActiveBackground({ bgType: 'dynamic'}); setActiveMenu(null); }} className="w-full text-left p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-[10px] font-black uppercase dark:text-white">Fondo Dinámico</button>
+                                        <input type="color" value={activeBg.bgColor} onChange={(e) => updateActiveBackground({ bgType: 'color', bgColor: e.target.value})} className="w-full h-8 rounded-lg cursor-pointer border-0 bg-transparent"/>
+                                        <button onClick={() => { const u = prompt("URL de Imagen:"); if(u) updateActiveBackground({ bgType: 'image', bgImage: u}); setActiveMenu(null); }} className="w-full text-left p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-[10px] font-black uppercase dark:text-white text-purple-500">URL Imagen</button>
+                                    </div>
+                                );
+                            })()}
                             <button onClick={() => setActiveMenu(activeMenu === 'themes' ? null : 'themes')} className="p-2.5 rounded-full hover:bg-white/20 text-slate-600 dark:text-slate-300" title="Temas"><Palette size={20} /></button>
                             {activeMenu === 'themes' && (
                                 <div className="absolute top-full right-24 mt-2 bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 rounded-2xl p-2 min-w-[200px] z-[160] grid grid-cols-2 gap-2">
