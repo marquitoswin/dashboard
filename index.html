@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Cloud v2.21</title>
+    <title>Dashboard Cloud v2.22</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script id="tailwind-config">
@@ -77,11 +77,12 @@
         // --- FIREBASE CONFIGURATION ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
         import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 
         // --- VERSION CONTROL ---
-        const APP_VERSION = "v2.21"; 
+        const APP_VERSION = "v2.22"; 
 
-        const firebaseConfig = {
+        const fallbackFirebaseConfig = {
             apiKey: "AIzaSyDC-DEwOtvdGneO16nGJm4W9u3ttQ0mpNA",
             authDomain: "dashboard-marcos-85453.firebaseapp.com",
             projectId: "dashboard-marcos-85453",
@@ -90,11 +91,17 @@
             appId: "1:786299628853:web:3437551c61855e2225b07c"
         };
 
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : fallbackFirebaseConfig;
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const auth = getAuth(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'dashboard-marcos';
         
-        // --- DB Version ---
+        // --- DB Version & Paths ---
         const DOC_ID = "main_dashboard_v7"; 
+        const getDashboardDocRef = () => {
+            return doc(db, 'artifacts', appId, 'public', 'data', 'dashboards', DOC_ID);
+        };
 
         // --- Utilidades ---
         const MIN_SIZE = 100; 
@@ -261,7 +268,6 @@
                 const updatedItems = items.map(i => i.id === item.id ? { ...i, data: { ...i.data, tasks: tasks.filter(t => t.id !== taskId) } } : i);
                 updateItems(updatedItems);
             };
-            // --- NUEVO: Función para editar tarea ---
             const editTask = (taskId, currentText) => {
                 const newText = prompt("Editar tarea:", currentText);
                 if (newText !== null && newText.trim() !== "") {
@@ -277,7 +283,6 @@
                         {tasks.map(t => (
                             <div key={t.id} className="flex items-center gap-2 group">
                                 <button onClick={(e) => { e.stopPropagation(); toggleTask(t.id); }} className={`w-4 h-4 rounded flex items-center justify-center border transition-all ${t.done ? 'bg-blue-500 border-blue-500' : 'border-slate-400 dark:border-slate-600 hover:border-blue-500'}`}>{t.done && <Check size={10} className="text-white" />}</button>
-                                {/* AHORA EL TEXTO ES CLICKABLE PARA EDITAR */}
                                 <span 
                                     onClick={(e) => { e.stopPropagation(); editTask(t.id, t.text); }}
                                     className={`flex-1 text-xs font-medium truncate cursor-pointer hover:text-blue-500 transition-colors ${t.done ? 'line-through opacity-40' : 'dark:text-slate-200'}`}
@@ -321,11 +326,6 @@
             };
             const hostname = getHostname(data.url);
             
-            // --- LÓGICA DE ICONOS HÍBRIDA (V2.19) ---
-            // 1. Por defecto usamos GOOGLE: Es el único que funciona bien en redes de trabajo (firewalls).
-            // 2. Solo para WHATSAPP y GMAIL, intentamos primero DuckDuckGo (porque el de Google es feo).
-            //    Si DuckDuckGo falla (estamos en el trabajo), volverá a Google automáticamente.
-            
             const getInitialSource = (host) => {
                 if (host.includes('whatsapp') || host.includes('mail.google')) return 'duckduckgo';
                 return 'google';
@@ -344,25 +344,18 @@
             };
 
             const handleImgError = () => {
-                // Sistema de cascada inteligente:
                 if (currentSource === 'google') {
-                    // Si Google falla, intentamos DuckDuckGo
                     setCurrentSource('duckduckgo');
                 } else if (currentSource === 'duckduckgo') {
-                    // Si DDG falla:
-                    // - Si era nuestra primera opción (WhatsApp/Gmail), pasamos a Google (seguro).
-                    // - Si ya veníamos de Google, intentamos Clearbit.
                     if (getInitialSource(hostname) === 'duckduckgo') setCurrentSource('google');
                     else setCurrentSource('clearbit');
                 } else if (currentSource === 'clearbit') {
-                    // Si Clearbit falla, fallback final.
                     setCurrentSource('fallback');
                 } else {
                     setCurrentSource('fallback');
                 }
             };
 
-            // Resetear fuente si cambia la URL
             useEffect(() => { setCurrentSource(getInitialSource(hostname)); }, [data.url]);
 
             return (
@@ -441,9 +434,11 @@
             const [currentTime, setCurrentTime] = useState(new Date());
             const [isConnected, setIsConnected] = useState(false);
             const [isSyncing, setIsSyncing] = useState(false);
-            const fileInputRef = useRef(null); // Ref para el input de archivo
+            const fileInputRef = useRef(null);
+            
+            // --- NUEVO ESTADO DE AUTENTICACIÓN ---
+            const [user, setUser] = useState(null);
 
-            // --- REFERENCIAS DE SEGURIDAD PARA SINCRONIZACIÓN ---
             const localChangesPending = useRef(false);
             const ignoreNextSave = useRef(false);
 
@@ -456,65 +451,78 @@
             const [preferences, setPreferences] = useState(DEFAULT_PREFS);
             const isInitialLoad = useRef(true);
 
+            // --- INICIALIZACIÓN AUTENTICACIÓN FIREBASE ---
             useEffect(() => {
+                const initAuth = async () => {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (e) {
+                        console.error("Error de autenticación inicial:", e);
+                    }
+                };
+                initAuth();
+                const unsubscribe = onAuthStateChanged(auth, setUser);
+                return () => unsubscribe();
+            }, []);
+
+            // --- CARGA DE DATOS SEGUROS ---
+            useEffect(() => {
+                if (!user) return; // REQUISITO OBLIGATORIO: Esperar autenticación
+
                 setIsSyncing(true);
-                const unsub = onSnapshot(doc(db, "data", DOC_ID), (docSnap) => {
+                const unsub = onSnapshot(getDashboardDocRef(), (docSnap) => {
                     setIsConnected(true); 
                     setIsSyncing(false);
 
-                    // --- PROTECCIÓN CONTRA SOBRESCRITURA ---
                     if (localChangesPending.current) {
-                        console.warn("Ignorando actualización remota: Hay cambios locales pendientes de guardar.");
                         return;
                     }
 
                     if (docSnap.exists()) {
                         const cloudData = docSnap.data();
-                        
-                        // Marcamos que esta actualización viene de fuera para no rebotarla
                         ignoreNextSave.current = true;
 
                         if (cloudData.items) setAllData(cloudData.items);
                         if (cloudData.prefs) setPreferences(cloudData.prefs);
                     } else {
-                         setDoc(doc(db, "data", DOC_ID), { items: DEFAULTS, prefs: DEFAULT_PREFS });
+                         setDoc(getDashboardDocRef(), { items: DEFAULTS, prefs: DEFAULT_PREFS }).catch(console.error);
                     }
                     isInitialLoad.current = false;
-                }, (error) => { console.error("Error connecting to DB:", error); setIsConnected(false); });
+                }, (error) => { 
+                    console.error("Error connecting to DB:", error); 
+                    setIsConnected(false); 
+                });
                 return () => unsub();
-            }, []);
+            }, [user]);
 
+            // --- GUARDADO DE DATOS SEGURO ---
             useEffect(() => {
-                if (isInitialLoad.current) return; 
+                if (isInitialLoad.current || !user) return; 
 
-                // Si la actualización vino del servidor (ignoreNextSave es true),
-                // la consumimos y NO programamos un guardado.
                 if (ignoreNextSave.current) {
                     ignoreNextSave.current = false;
                     return;
                 }
 
-                // Si llegamos aquí, es un cambio local del usuario.
-                // Activamos el semáforo para bloquear snapshots entrantes.
                 localChangesPending.current = true;
 
                 const saveToCloud = setTimeout(() => {
                     setIsSyncing(true);
-                    setDoc(doc(db, "data", DOC_ID), { items: allData, prefs: preferences })
+                    setDoc(getDashboardDocRef(), { items: allData, prefs: preferences })
                         .then(() => { 
                             setIsSyncing(false);
-                            // Liberamos el semáforo: ya estamos sincronizados.
                             localChangesPending.current = false; 
                         })
                         .catch(e => {
                             console.error("Error saving:", e);
-                            // En caso de error, mantenemos el semáforo por seguridad o lo liberamos tras un tiempo?
-                            // Mejor liberarlo para permitir reintentos o lecturas futuras, pero con cuidado.
-                            // Por ahora, asumimos reintento manual del usuario si falla.
                         });
                 }, 1000); 
                 return () => clearTimeout(saveToCloud);
-            }, [allData, preferences]);
+            }, [allData, preferences, user]);
 
             useEffect(() => { localStorage.setItem('dashboard-mode', mode); }, [mode]);
             
@@ -584,7 +592,7 @@
                         '    <script src="https://cdn.tailwindcss.com"><' + '/script>',
                         '    <script id="tailwind-config">' + tailwindConfigContent.replace(new RegExp("</" + "script", "g"), '<' + '\\/script') + '<' + '/script>',
                         '    <script type="importmap">{"imports":{"react":"https://esm.sh/react@18.2.0","react-dom/client":"https://esm.sh/react-dom@18.2.0/client","lucide-react":"https://esm.sh/lucide-react@0.292.0"}}<' + '/script>',
-                        '    <script src="https://unpkg.com/@babel/standalone/babel.min.js"><' + '/script>',
+                        '    <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"><' + '/script>',
                         '    <style id="main-styles">' + styleContent + '<' + '/style>',
                         '    <script>',
                         '        const theme = ' + JSON.stringify(preferences.theme) + ';',
@@ -624,7 +632,6 @@
                 reader.onload = (e) => {
                     const content = e.target.result;
                     try {
-                        // Intentar buscar el formato HTML exportado (más robusto)
                         const dataMatch = content.match(/window\.INITIAL_DATA\s*=\s*({[\s\S]*?});/);
                         const prefsMatch = content.match(/window\.INITIAL_PREFS\s*=\s*({[\s\S]*?});/);
                         
@@ -634,14 +641,12 @@
                         if (dataMatch && dataMatch[1]) {
                             importedData = JSON.parse(dataMatch[1]);
                         } else {
-                            // Si no encuentra el patrón HTML, intentar parsear todo el archivo como JSON
                             importedData = JSON.parse(content);
                         }
 
                         if (prefsMatch && prefsMatch[1]) {
                             importedPrefs = JSON.parse(prefsMatch[1]);
                         } else if (importedData && importedData.prefs) {
-                             // Caso donde el JSON raíz ya tenga prefs
                             importedPrefs = importedData.prefs;
                         }
 
@@ -770,7 +775,6 @@
 
                             <button onClick={handleExportHtml} className="p-2 px-4 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-lg active:scale-95 transition-all ml-1 shrink-0"><Download size={16} /><span className="text-sm font-black uppercase hidden xl:inline">Exportar HTML</span></button>
 
-                            {/* Botón de Importar Restaurado (Estilo original y funcionalidad simplificada) */}
                             <button onClick={() => fileInputRef.current.click()} className="p-2 px-4 rounded-full bg-orange-500 hover:bg-orange-600 text-white flex items-center gap-2 shadow-lg active:scale-95 transition-all ml-1 shrink-0">
                                 <Upload size={16} />
                                 <span className="text-sm font-black uppercase hidden xl:inline">Importar</span>
@@ -883,41 +887,6 @@
                                         </div>
                                     </div>
                                 )}
-                                {item.type === 'widget-iframe' && (
-                                    item.title === 'MICROSOFT TO DO' ? (
-                                        <MSTodoWidget item={item} />
-                                    ) : (
-                                        <div className="flex flex-col h-full w-full bg-white dark:bg-slate-900 relative group/iframe">
-                                            <div className="p-2 border-b bg-slate-50 dark:bg-slate-800 flex items-center justify-between pointer-events-none">
-                                                <div className="flex items-center gap-2">
-                                                    <Globe size={12}/>
-                                                    <span className="text-[10px] font-black truncate">{item.title}</span>
-                                                </div>
-                                            </div>
-                                            
-                                            <button 
-                                                onClick={() => window.open(item.data.url, '_blank')}
-                                                className="absolute top-1.5 right-1.5 p-1 rounded-md bg-white/50 hover:bg-white dark:bg-black/20 dark:hover:bg-black/50 transition-colors pointer-events-auto z-20"
-                                                title="Abrir en nueva pestaña"
-                                            >
-                                                <ExternalLink size={12} className="text-slate-600 dark:text-slate-300" />
-                                            </button>
-
-                                            <div className="flex-1 relative overflow-hidden bg-white">
-                                                <iframe 
-                                                    src={item.data.url} 
-                                                    className="w-full h-full border-0"
-                                                    loading="lazy"
-                                                    referrerPolicy="no-referrer"
-                                                    sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                                                />
-                                                <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center text-center p-4 bg-slate-100/50 dark:bg-slate-900/50 -z-10">
-                                                    <p className="text-[10px] opacity-50 mb-2">Si no carga el contenido...</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )
-                                )}
                                 {item.type === 'widget-note' && (
                                     <div className="flex flex-col h-full p-4">
                                         <div className="flex items-center gap-2 mb-2 opacity-60 pointer-events-none"><Type size={12}/><h3 className="text-[10px] font-black">{item.title}</h3></div>
@@ -948,7 +917,6 @@
                                         const itemsToOpen = activeFolder?.data.items || [];
                                         if (itemsToOpen.length === 0) return;
                                         
-                                        // Usamos un bucle robusto para asegurar que intente abrir todos
                                         for (const item of itemsToOpen) {
                                             if(item && item.url && typeof item.url === 'string') {
                                                 try {
