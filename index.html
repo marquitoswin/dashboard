@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Cloud v2.25</title>
+    <title>Dashboard Cloud v2.26</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script id="tailwind-config">
@@ -86,7 +86,7 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 
         // --- VERSION CONTROL ---
-        const APP_VERSION = "v2.25"; 
+        const APP_VERSION = "v2.26"; 
 
         const fallbackFirebaseConfig = {
             apiKey: "AIzaSyDC-DEwOtvdGneO16nGJm4W9u3ttQ0mpNA",
@@ -875,18 +875,24 @@
                                 onDelete={id => updateItems(items.filter(i => i.id !== id))} 
                                 onEditProperties={it => {
                                     const t = prompt("Nuevo nombre:", it.title);
-                                    let updatedItem = { ...it };
-                                    if (t !== null) {
-                                        updatedItem.title = t;
-                                        if (it.type === 'widget-calendar') {
-                                            const u = prompt("URL del Calendario:", it.data.url);
-                                            if (u !== null) updatedItem.data = { ...updatedItem.data, url: u };
+                                    if (t === null) return; // Si cancela, no hacemos nada
+                                    
+                                    let updatedItem = { ...it, title: t };
+                                    
+                                    if (it.type === 'widget-calendar') {
+                                        const u = prompt("URL del Calendario:", it.data.url);
+                                        if (u !== null) updatedItem.data = { ...updatedItem.data, url: u };
 
-                                            const z = prompt("Nivel de zoom/tamaño texto (ej: 0.8 para más pequeño, 1.2 para más grande):", it.data.zoom || 1);
-                                            if (z !== null) updatedItem.data = { ...updatedItem.data, zoom: parseFloat(z) || 1 };
+                                        const z = prompt("Nivel de zoom/tamaño texto (ej: 0.8 para más pequeño, 1.2 para más grande):", it.data.zoom || 1);
+                                        if (z !== null) updatedItem.data = { ...updatedItem.data, zoom: parseFloat(z) || 1 };
+                                    } else if (it.type === 'shortcut' || it.type === 'cloud-doc') {
+                                        const u = prompt("Nueva URL:", it.data.url);
+                                        if (u !== null && u.trim() !== "") {
+                                            updatedItem.data = { ...updatedItem.data, url: u.trim() };
                                         }
-                                        updateItems(items.map(i => i.id === it.id ? updatedItem : i));
                                     }
+                                    
+                                    updateItems(items.map(i => i.id === it.id ? updatedItem : i));
                                 }}
                                 onMouseDown={handleMouseDown}
                                 onResizeStart={(e, id) => { 
