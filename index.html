@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Cloud v2.26</title>
+    <title>Dashboard Cloud v2.27</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script id="tailwind-config">
@@ -86,7 +86,7 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 
         // --- VERSION CONTROL ---
-        const APP_VERSION = "v2.26"; 
+        const APP_VERSION = "v2.27"; 
 
         const fallbackFirebaseConfig = {
             apiKey: "AIzaSyDC-DEwOtvdGneO16nGJm4W9u3ttQ0mpNA",
@@ -379,7 +379,7 @@
                             className="w-full h-full object-contain" 
                         />
                     </div>
-                    <span className="text-[11px] font-black text-slate-800 dark:text-white bg-white/60 dark:bg-black/40 rounded-full px-2 py-0.5 backdrop-blur-sm truncate max-w-full tracking-tighter pointer-events-none">{title}</span>
+                    <span className="text-[11px] font-medium text-slate-800 dark:text-white bg-white/60 dark:bg-black/40 rounded-full px-2 py-0.5 backdrop-blur-sm truncate max-w-full tracking-tighter pointer-events-none">{title}</span>
                 </a>
             );
         };
@@ -391,7 +391,7 @@
                     <div className={`${compact ? 'w-12 h-12' : 'w-14 h-14'} mb-1 drop-shadow-lg bg-blue-500/10 dark:bg-blue-500/20 rounded-2xl flex items-center justify-center p-2 border border-blue-500/30 pointer-events-none`}>
                         <DocIcon className="text-blue-600 dark:text-blue-400" size={compact ? 24 : 32} />
                     </div>
-                    <div className="flex items-center gap-1 bg-white/60 dark:bg-black/40 rounded-full px-2 py-0.5 backdrop-blur-sm pointer-events-none"><HardDrive size={compact ? 6 : 8} className="opacity-50 dark:text-white" /><span className="text-[11px] font-black text-slate-800 dark:text-white truncate max-w-[80px] tracking-tighter">{title}</span></div>
+                    <div className="flex items-center gap-1 bg-white/60 dark:bg-black/40 rounded-full px-2 py-0.5 backdrop-blur-sm pointer-events-none"><HardDrive size={compact ? 6 : 8} className="opacity-50 dark:text-white" /><span className="text-[11px] font-medium text-slate-800 dark:text-white truncate max-w-[80px] tracking-tighter">{title}</span></div>
                 </a>
             );
         };
@@ -405,7 +405,7 @@
                         <IconComp size={isDefault ? 64 : 48} fill={isDefault ? "currentColor" : "none"} className={`${color} opacity-90 drop-shadow-md transition-all`} strokeWidth={isDefault ? 1.5 : 2.5} />
                         <div className={`absolute inset-0 ${isDefault ? 'top-3' : 'top-6'} flex items-center justify-center`}><span className="text-[10px] font-black text-slate-800 dark:text-white bg-white/80 dark:bg-black/60 rounded-full px-1.5 shadow-sm">{(data.items || []).length}</span></div>
                     </div>
-                    <span className="text-[11px] font-black text-slate-800 dark:text-white bg-white/60 dark:bg-black/40 rounded-full px-2 py-0.5 backdrop-blur-sm truncate max-w-full tracking-tighter pointer-events-none">{title}</span>
+                    <span className="text-[11px] font-medium text-slate-800 dark:text-white bg-white/60 dark:bg-black/40 rounded-full px-2 py-0.5 backdrop-blur-sm truncate max-w-full tracking-tighter pointer-events-none">{title}</span>
                 </div>
             );
         };
@@ -1007,7 +1007,7 @@
                                     <div className="w-12 h-12 mb-1 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl flex items-center justify-center text-slate-400 group-hover:border-blue-500 group-hover:text-blue-500 transition-all">
                                         <Plus size={24} />
                                     </div>
-                                    <span className="text-[9px] font-black uppercase opacity-40">Añadir</span>
+                                    <span className="text-[9px] font-medium uppercase opacity-40">Añadir</span>
                                 </button>
                             </div>
                         </Modal>
