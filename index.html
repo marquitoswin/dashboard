@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Cloud v2.30</title>
+    <title>Dashboard Cloud v2.31</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script id="tailwind-config">
@@ -86,7 +86,7 @@
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 
         // --- VERSION CONTROL ---
-        const APP_VERSION = "v2.30"; 
+        const APP_VERSION = "v2.31"; 
 
         const fallbackFirebaseConfig = {
             apiKey: "AIzaSyDC-DEwOtvdGneO16nGJm4W9u3ttQ0mpNA",
@@ -332,25 +332,30 @@
             );
         };
 
+        // --- SHORTCUT WIDGET CON RECORTADO DE DOMINIO INTELIGENTE ---
         const ShortcutWidget = ({ data, title, compact = false, onNavigate, onMouseDown }) => {
             const getHostname = (u) => {
                 try { return new URL(u.startsWith('http') ? u : 'https://' + u).hostname; } catch(e) { return ''; }
             };
-            const hostname = getHostname(data.url);
+            const initialHostname = getHostname(data.url);
             
+            // Ahora guardamos el dominio actual que estamos intentando buscar
+            const [currentHostname, setCurrentHostname] = useState(initialHostname);
+
             const getInitialSource = (host) => {
                 if (host.includes('whatsapp') || host.includes('mail.google')) return 'duckduckgo';
                 return 'google';
             };
 
-            const [currentSource, setCurrentSource] = useState(() => getInitialSource(hostname));
+            const [currentSource, setCurrentSource] = useState(() => getInitialSource(initialHostname));
 
-            const getIconUrl = (source) => {
-                if (!hostname) return 'https://cdn-icons-png.flaticon.com/512/1006/1006771.png';
+            // Modificado para que use el host que le pasemos (que puede estar recortado)
+            const getIconUrl = (source, host) => {
+                if (!host) return 'https://cdn-icons-png.flaticon.com/512/1006/1006771.png';
                 switch(source) {
-                    case 'google': return `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`;
-                    case 'duckduckgo': return `https://icons.duckduckgo.com/ip3/${hostname}.ico`;
-                    case 'clearbit': return `https://logo.clearbit.com/${hostname}`;
+                    case 'google': return `https://www.google.com/s2/favicons?domain=${host}&sz=128`;
+                    case 'duckduckgo': return `https://icons.duckduckgo.com/ip3/${host}.ico`;
+                    case 'clearbit': return `https://logo.clearbit.com/${host}`;
                     default: return 'https://cdn-icons-png.flaticon.com/512/1006/1006771.png';
                 }
             };
@@ -359,22 +364,37 @@
                 if (currentSource === 'google') {
                     setCurrentSource('duckduckgo');
                 } else if (currentSource === 'duckduckgo') {
-                    if (getInitialSource(hostname) === 'duckduckgo') setCurrentSource('google');
+                    if (getInitialSource(currentHostname) === 'duckduckgo') setCurrentSource('google');
                     else setCurrentSource('clearbit');
                 } else if (currentSource === 'clearbit') {
-                    setCurrentSource('fallback');
+                    // ¡AQUÍ ESTÁ LA MAGIA! Si fallan todos, recortamos el dominio
+                    const parts = currentHostname.split('.');
+                    if (parts.length > 2) {
+                        parts.shift(); // Quitamos el primer subdominio (ej: de app.ing.es pasa a ing.es)
+                        const newHost = parts.join('.');
+                        setCurrentHostname(newHost);
+                        setCurrentSource(getInitialSource(newHost)); // Volvemos a intentar con Google
+                    } else {
+                        // Si ya solo quedan 2 partes (ej: ing.es) y falló, nos rendimos
+                        setCurrentSource('fallback');
+                    }
                 } else {
                     setCurrentSource('fallback');
                 }
             };
 
-            useEffect(() => { setCurrentSource(getInitialSource(hostname)); }, [data.url]);
+            // Si editas la URL, reseteamos todo al valor original
+            useEffect(() => { 
+                const host = getHostname(data.url);
+                setCurrentHostname(host);
+                setCurrentSource(getInitialSource(host)); 
+            }, [data.url]);
 
             return (
                 <a href={data.url.startsWith('http') ? data.url : 'https://' + data.url} target="_blank" rel="noopener noreferrer" onClick={onNavigate} onMouseDown={onMouseDown} onDragStart={e => e.preventDefault()} className={`flex flex-col items-center justify-center transition-transform hover:scale-110 group ${compact ? 'w-20 cursor-pointer' : 'h-full w-full p-1 cursor-pointer'}`}>
                     <div className={`${compact ? 'w-12 h-12' : 'w-14 h-14'} mb-1 drop-shadow-lg bg-white/50 dark:bg-slate-800/50 rounded-2xl flex items-center justify-center p-2 border border-white/20 pointer-events-none`}>
                         <img 
-                            src={getIconUrl(currentSource)} 
+                            src={getIconUrl(currentSource, currentHostname)} 
                             onError={handleImgError}
                             alt="" 
                             className="w-full h-full object-contain" 
@@ -899,7 +919,6 @@
                             
                             <button onClick={() => setIsSettingsOpen(true)} className="p-2 rounded-full hover:bg-white/20 text-slate-600 dark:text-slate-300" title="Ajustes"><Settings size={20} /></button>
                             
-                            {/* BOTÓN DE LOGOUT AÑADIDO AQUÍ */}
                             <button onClick={handleLogout} className="p-2 rounded-full hover:bg-red-500 hover:text-white text-slate-600 dark:text-slate-300 transition-colors ml-2" title="Cerrar sesión"><LogOut size={20} /></button>
 
                         </div>
@@ -911,7 +930,7 @@
                                 onDelete={id => updateItems(items.filter(i => i.id !== id))} 
                                 onEditProperties={it => {
                                     const t = prompt("Nuevo nombre:", it.title);
-                                    if (t === null) return; // Si cancela, no hacemos nada
+                                    if (t === null) return; 
                                     
                                     let updatedItem = { ...it, title: t };
                                     
