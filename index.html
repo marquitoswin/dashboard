@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Cloud v2.33</title>
+    <title>Dashboard Cloud v2.34</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script id="tailwind-config">
@@ -86,7 +86,7 @@
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 
         // --- VERSION CONTROL ---
-        const APP_VERSION = "v2.33"; 
+        const APP_VERSION = "v2.34"; 
 
         const fallbackFirebaseConfig = {
             apiKey: "AIzaSyDC-DEwOtvdGneO16nGJm4W9u3ttQ0mpNA",
@@ -128,7 +128,7 @@
             } catch (e) { return ""; }
         };
 
-        // NUEVA FUNCIÓN: Extractor de Raíz
+        // Extractor de Raíz
         const getRootDomain = (url) => {
             try {
                 if (!url) return "";
@@ -353,20 +353,15 @@
             );
         };
 
-        // --- SHORTCUT WIDGET CON EXTRACTOR DE RAÍZ V2.33 ---
         const ShortcutWidget = ({ data, title, compact = false, onNavigate, onMouseDown }) => {
             const rootDomain = getRootDomain(data.url);
-            
-            // Le pedimos a Google el logo de la raíz directamente
             const [imgSrc, setImgSrc] = useState(`https://www.google.com/s2/favicons?domain=${rootDomain}&sz=128`);
 
-            // Escuchamos los cambios en la URL
             useEffect(() => {
                 const newRoot = getRootDomain(data.url);
                 setImgSrc(`https://www.google.com/s2/favicons?domain=${newRoot}&sz=128`);
             }, [data.url]);
 
-            // Si por un casual Google fallara (muy raro con la raíz), probamos DuckDuckGo
             const handleImgError = () => {
                 if (imgSrc.includes('google.com')) {
                     setImgSrc(`https://icons.duckduckgo.com/ip3/${rootDomain}.ico`);
@@ -621,6 +616,7 @@
                 updateItems([...items, newItem]);
             };
 
+            // ¡AQUÍ ESTÁ LA CORRECCIÓN CLAVE EN LA V2.34!
             const handleExportHtml = () => {
                 try {
                     const scriptContent = document.getElementById('app-code').innerText;
@@ -644,8 +640,8 @@
                         '<body>',
                         '    <div id="root"></div>',
                         '    <script id="initial-setup">',
-                        '       window.INITIAL_DATA = ' + JSON.stringify(DEFAULTS) + ';',
-                        '       window.INITIAL_PREFS = ' + JSON.stringify(DEFAULT_PREFS) + ';',
+                        '       window.INITIAL_DATA = ' + JSON.stringify(allData) + ';',
+                        '       window.INITIAL_PREFS = ' + JSON.stringify(preferences) + ';',
                         '    <' + '/script>',
                         '    <script type="text/babel" data-type="module" id="app-code">' + scriptContent.replace(new RegExp("</" + "script", "g"), '<' + '\\/script') + '<' + '/script>',
                         '</body>',
