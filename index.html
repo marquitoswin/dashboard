@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Cloud v2.29</title>
+    <title>Dashboard Cloud v2.30</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script id="tailwind-config">
@@ -77,16 +77,16 @@
         import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
         import { createRoot } from 'react-dom/client';
         import { 
-            Plus, Settings, X, Check, Trash2, Link as LinkIcon, Folder as FolderIcon, Cloud, Clock, Edit2, Search, Briefcase, Home, Image as ImageIcon, Loader2, Download, Upload, Save, Calendar as CalendarIcon, RotateCcw, Play, Sparkles, MessageSquare, Database, Palette, Wallpaper, FileText, FileSpreadsheet, FilePieChart, HardDrive, Grip, Type, ArrowLeft, MapPin, Move, ShoppingCart, Music, Mail, Gamepad2, Landmark, BookOpen, Utensils, ShoppingBag, Camera, Film, Tv, Sun, CloudSun, CloudRain, Wifi, WifiOff, CloudCog, ArrowUpCircle, CloudLightning, Globe, ExternalLink, CheckSquare
+            Plus, Settings, X, Check, Trash2, Link as LinkIcon, Folder as FolderIcon, Cloud, Clock, Edit2, Search, Briefcase, Home, Image as ImageIcon, Loader2, Download, Upload, Save, Calendar as CalendarIcon, RotateCcw, Play, Sparkles, MessageSquare, Database, Palette, Wallpaper, FileText, FileSpreadsheet, FilePieChart, HardDrive, Grip, Type, ArrowLeft, MapPin, Move, ShoppingCart, Music, Mail, Gamepad2, Landmark, BookOpen, Utensils, ShoppingBag, Camera, Film, Tv, Sun, CloudSun, CloudRain, Wifi, WifiOff, CloudCog, ArrowUpCircle, CloudLightning, Globe, ExternalLink, CheckSquare, LogOut, ShieldCheck
         } from 'lucide-react';
 
-        // --- FIREBASE CONFIGURATION ---
+        // --- FIREBASE CONFIGURATION SECURE ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
         import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 
         // --- VERSION CONTROL ---
-        const APP_VERSION = "v2.29"; 
+        const APP_VERSION = "v2.30"; 
 
         const fallbackFirebaseConfig = {
             apiKey: "AIzaSyDC-DEwOtvdGneO16nGJm4W9u3ttQ0mpNA",
@@ -102,6 +102,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
+        const googleProvider = new GoogleAuthProvider();
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'dashboard-marcos';
         
         // --- DB Version & Paths ---
@@ -447,7 +448,9 @@
             const [isSyncing, setIsSyncing] = useState(false);
             const fileInputRef = useRef(null);
             
+            // --- ESTADOS DE AUTH GOOGLE ---
             const [user, setUser] = useState(null);
+            const [isAuthLoading, setIsAuthLoading] = useState(true);
 
             const localChangesPending = useRef(false);
             const ignoreNextSave = useRef(false);
@@ -461,29 +464,31 @@
             const [preferences, setPreferences] = useState(DEFAULT_PREFS);
             const isInitialLoad = useRef(true);
 
-            // --- INICIALIZACIÓN AUTENTICACIÓN ---
+            // --- INICIALIZACIÓN AUTENTICACIÓN GOOGLE ---
             useEffect(() => {
-                const initAuth = async () => {
-                    if (isProduction) return; // En producción ya no exigimos Auth para que no se bloquee
-                    
-                    try {
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            await signInWithCustomToken(auth, __initial_auth_token);
-                        } else {
-                            await signInAnonymously(auth);
-                        }
-                    } catch (e) {
-                        console.error("Error de autenticación inicial:", e);
-                    }
-                };
-                initAuth();
-                const unsubscribe = onAuthStateChanged(auth, setUser);
+                const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+                    setUser(currentUser);
+                    setIsAuthLoading(false);
+                });
                 return () => unsubscribe();
             }, []);
 
+            const handleLogin = () => {
+                signInWithPopup(auth, googleProvider).catch(error => {
+                    console.error("Error al iniciar sesión", error);
+                    alert("No se pudo iniciar sesión con Google. Inténtalo de nuevo.");
+                });
+            };
+
+            const handleLogout = () => {
+                if(confirm("¿Seguro que quieres cerrar sesión?")) {
+                    signOut(auth).catch(console.error);
+                }
+            };
+
             // --- CARGA DE DATOS SEGUROS ---
             useEffect(() => {
-                if (!isProduction && !user) return; 
+                if (!user) return; 
 
                 setIsSyncing(true);
                 const unsub = onSnapshot(getDashboardDocRef(), (docSnap) => {
@@ -513,8 +518,7 @@
 
             // --- GUARDADO DE DATOS SEGURO ---
             useEffect(() => {
-                if (isInitialLoad.current) return; 
-                if (!isProduction && !user) return;
+                if (isInitialLoad.current || !user) return; 
 
                 if (ignoreNextSave.current) {
                     ignoreNextSave.current = false;
@@ -549,7 +553,6 @@
             // Helper para actualizar el fondo de pantalla de forma independiente
             const updateActiveBackground = useCallback((newBgProps) => {
                 setPreferences(prev => {
-                    // Migración segura si la base de datos es antigua y no tiene 'backgrounds'
                     const currentHome = prev.backgrounds?.home || { bgType: prev.bgType || 'dynamic', bgImage: prev.bgImage || '', bgColor: prev.bgColor || '#0f172a' };
                     const currentWork = prev.backgrounds?.work || { bgType: prev.bgType || 'dynamic', bgImage: prev.bgImage || '', bgColor: prev.bgColor || '#0f172a' };
                     
@@ -791,6 +794,35 @@
                 return `${day} ${month} ${year}`;
             };
 
+            // --- PANTALLA DE LOGIN ---
+            if (isAuthLoading) {
+                return <div className="min-h-screen w-full flex items-center justify-center bg-slate-900 text-white"><Loader2 className="animate-spin" size={32}/></div>;
+            }
+
+            if (!user) {
+                return (
+                    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-900 text-white relative overflow-hidden">
+                        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center opacity-20"></div>
+                        <div className="bg-slate-800/80 backdrop-blur-xl p-10 rounded-3xl shadow-2xl flex flex-col items-center max-w-sm text-center border border-white/10 relative z-10">
+                            <div className="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-blue-500/30">
+                                <ShieldCheck size={32} className="text-white" />
+                            </div>
+                            <h1 className="text-3xl font-black mb-2 tracking-tighter" style={{ fontFamily: "'Georgia', serif" }}>DASHBOARD</h1>
+                            <p className="text-sm text-slate-300 mb-8 font-medium">Inicia sesión con tu cuenta de Google para acceder a tu panel privado.</p>
+                            <button onClick={handleLogin} className="flex items-center gap-3 bg-white text-slate-900 px-6 py-3.5 rounded-full font-bold hover:bg-slate-200 transition-all hover:scale-105 shadow-xl">
+                                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                                    <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                                </svg>
+                                Entrar con Google
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
             return (
                 <div className="min-h-screen w-full transition-all duration-1000 bg-transition overflow-hidden" style={currentBgStyle}>
                     <div className="fixed inset-0 bg-black/10 dark:bg-black/40 pointer-events-none" />
@@ -865,7 +897,11 @@
                             )}
                             <button onClick={() => setIsEditing(!isEditing)} className={`p-2 rounded-full transition-all ${isEditing ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-600 dark:text-slate-300 hover:bg-white/20'}`}>{isEditing ? <Check size={20} /> : <Edit2 size={20} />}</button>
                             
-                            <button onClick={() => setIsSettingsOpen(true)} className="p-2 rounded-full hover:bg-white/20 text-slate-600 dark:text-slate-300"><Settings size={20} /></button>
+                            <button onClick={() => setIsSettingsOpen(true)} className="p-2 rounded-full hover:bg-white/20 text-slate-600 dark:text-slate-300" title="Ajustes"><Settings size={20} /></button>
+                            
+                            {/* BOTÓN DE LOGOUT AÑADIDO AQUÍ */}
+                            <button onClick={handleLogout} className="p-2 rounded-full hover:bg-red-500 hover:text-white text-slate-600 dark:text-slate-300 transition-colors ml-2" title="Cerrar sesión"><LogOut size={20} /></button>
+
                         </div>
                     </header>
 
