@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Cloud v2.32</title>
+    <title>Dashboard Cloud v2.33</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%232563eb%22/><path d=%22M30 30h15v15H30zm25 0h15v15H55zM30 55h15v15H30zm25 0h15v15H55z%22 fill=%22white%22/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script id="tailwind-config">
@@ -86,7 +86,7 @@
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 
         // --- VERSION CONTROL ---
-        const APP_VERSION = "v2.32"; 
+        const APP_VERSION = "v2.33"; 
 
         const fallbackFirebaseConfig = {
             apiKey: "AIzaSyDC-DEwOtvdGneO16nGJm4W9u3ttQ0mpNA",
@@ -126,6 +126,28 @@
                 const name = hostname.split('.')[0];
                 return name.charAt(0).toUpperCase() + name.slice(1);
             } catch (e) { return ""; }
+        };
+
+        // NUEVA FUNCIÓN: Extractor de Raíz
+        const getRootDomain = (url) => {
+            try {
+                if (!url) return "";
+                let host = new URL(url.startsWith('http') ? url : 'https://' + url).hostname;
+                host = host.replace('www.', '');
+                const parts = host.split('.');
+                if (parts.length <= 2) return host; // ej: ing.es
+                
+                // Si tiene terminaciones compuestas (co.uk, com.es, org.es)
+                const twoPartTlds = ['co', 'com', 'org', 'net', 'gob', 'edu', 'ac'];
+                if (twoPartTlds.includes(parts[parts.length - 2])) {
+                    return parts.slice(-3).join('.'); // ej: banco.com.es
+                }
+                
+                // Para el resto (ing.ingdirect.es -> ingdirect.es)
+                return parts.slice(-2).join('.');
+            } catch (e) {
+                return "";
+            }
         };
 
         const SEARCH_ENGINES = {
@@ -262,7 +284,6 @@
             );
         };
 
-        // --- Componentes ---
         const TodoWidget = ({ item, updateItems, items }) => {
             const [inputValue, setInputValue] = useState("");
             const tasks = item.data.tasks || [];
@@ -332,45 +353,27 @@
             );
         };
 
-        // --- SHORTCUT WIDGET CON RECORTADO DE DOMINIO Y SECUENCIA DE BÚSQUEDA ---
+        // --- SHORTCUT WIDGET CON EXTRACTOR DE RAÍZ V2.33 ---
         const ShortcutWidget = ({ data, title, compact = false, onNavigate, onMouseDown }) => {
-            const getHostname = (u) => {
-                try { return new URL(u.startsWith('http') ? u : 'https://' + u).hostname; } catch(e) { return ''; }
-            };
+            const rootDomain = getRootDomain(data.url);
             
-            // Función que genera una lista de sitios donde probar a buscar el logo
-            const getUrlSequence = (host) => {
-                if (!host) return ['https://cdn-icons-png.flaticon.com/512/1006/1006771.png'];
-                const parts = host.split('.');
-                // Comprobamos si el dominio termina en algo de dos partes (ej: .co.uk, .com.es)
-                const isTwoPartTld = parts.length > 2 && ['co', 'com', 'org', 'net', 'gob', 'edu'].includes(parts[parts.length - 2]);
-                // Obtenemos el dominio principal recortando los subdominios iniciales
-                const rootDomain = parts.length > (isTwoPartTld ? 3 : 2) ? parts.slice(isTwoPartTld ? -3 : -2).join('.') : host;
-                
-                const seq = [];
-                // Paso 1: Intentamos conseguir el logo de alta calidad de Clearbit para la URL exacta
-                seq.push(`https://logo.clearbit.com/${host}`);
-                // Paso 2: Si falla (da error 404), intentamos en Clearbit pero solo con la URL principal
-                if (rootDomain !== host) seq.push(`https://logo.clearbit.com/${rootDomain}`);
-                // Paso 3 y 4: Si Clearbit falla en las dos, acudimos a Google como último recurso (Google nunca da error)
-                seq.push(`https://www.google.com/s2/favicons?domain=${host}&sz=128`);
-                if (rootDomain !== host) seq.push(`https://www.google.com/s2/favicons?domain=${rootDomain}&sz=128`);
-                
-                return seq;
-            };
+            // Le pedimos a Google el logo de la raíz directamente
+            const [imgSrc, setImgSrc] = useState(`https://www.google.com/s2/favicons?domain=${rootDomain}&sz=128`);
 
-            const [urls, setUrls] = useState(() => getUrlSequence(getHostname(data.url)));
-            const [currentIdx, setCurrentIdx] = useState(0);
-
+            // Escuchamos los cambios en la URL
             useEffect(() => {
-                setUrls(getUrlSequence(getHostname(data.url)));
-                setCurrentIdx(0);
+                const newRoot = getRootDomain(data.url);
+                setImgSrc(`https://www.google.com/s2/favicons?domain=${newRoot}&sz=128`);
             }, [data.url]);
 
+            // Si por un casual Google fallara (muy raro con la raíz), probamos DuckDuckGo
             const handleImgError = () => {
-                // Si la imagen falla (como pasa con Clearbit si no encuentra el logo), pasamos a la siguiente de la lista
-                if (currentIdx < urls.length - 1) {
-                    setCurrentIdx(prev => prev + 1);
+                if (imgSrc.includes('google.com')) {
+                    setImgSrc(`https://icons.duckduckgo.com/ip3/${rootDomain}.ico`);
+                } else if (imgSrc.includes('duckduckgo')) {
+                    setImgSrc(`https://logo.clearbit.com/${rootDomain}`);
+                } else {
+                    setImgSrc('https://cdn-icons-png.flaticon.com/512/1006/1006771.png');
                 }
             };
 
@@ -378,7 +381,7 @@
                 <a href={data.url.startsWith('http') ? data.url : 'https://' + data.url} target="_blank" rel="noopener noreferrer" onClick={onNavigate} onMouseDown={onMouseDown} onDragStart={e => e.preventDefault()} className={`flex flex-col items-center justify-center transition-transform hover:scale-110 group ${compact ? 'w-20 cursor-pointer' : 'h-full w-full p-1 cursor-pointer'}`}>
                     <div className={`${compact ? 'w-12 h-12' : 'w-14 h-14'} mb-1 drop-shadow-lg bg-white/50 dark:bg-slate-800/50 rounded-2xl flex items-center justify-center p-2 border border-white/20 pointer-events-none`}>
                         <img 
-                            src={urls[currentIdx]} 
+                            src={imgSrc} 
                             onError={handleImgError}
                             alt="" 
                             className="w-full h-full object-contain" 
@@ -452,7 +455,6 @@
             const [isSyncing, setIsSyncing] = useState(false);
             const fileInputRef = useRef(null);
             
-            // --- ESTADOS DE AUTH GOOGLE ---
             const [user, setUser] = useState(null);
             const [isAuthLoading, setIsAuthLoading] = useState(true);
 
@@ -468,7 +470,6 @@
             const [preferences, setPreferences] = useState(DEFAULT_PREFS);
             const isInitialLoad = useRef(true);
 
-            // --- INICIALIZACIÓN AUTENTICACIÓN GOOGLE ---
             useEffect(() => {
                 const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
                     setUser(currentUser);
@@ -490,7 +491,6 @@
                 }
             };
 
-            // --- CARGA DE DATOS SEGUROS ---
             useEffect(() => {
                 if (!user) return; 
 
@@ -520,7 +520,6 @@
                 return () => unsub();
             }, [user]);
 
-            // --- GUARDADO DE DATOS SEGURO ---
             useEffect(() => {
                 if (isInitialLoad.current || !user) return; 
 
@@ -554,7 +553,6 @@
                 if (preferences.theme === 'dark' || preferences.theme === 'mid-dark') root.classList.add('dark');
             }, [preferences.theme]);
 
-            // Helper para actualizar el fondo de pantalla de forma independiente
             const updateActiveBackground = useCallback((newBgProps) => {
                 setPreferences(prev => {
                     const currentHome = prev.backgrounds?.home || { bgType: prev.bgType || 'dynamic', bgImage: prev.bgImage || '', bgColor: prev.bgColor || '#0f172a' };
@@ -571,7 +569,6 @@
             }, [mode]);
 
             const currentBgStyle = useMemo(() => {
-                // Recuperar el fondo específico del modo actual (home/work)
                 const activeBg = preferences.backgrounds?.[mode] || { 
                     bgType: preferences.bgType || 'dynamic', 
                     bgImage: preferences.bgImage || '', 
@@ -798,7 +795,6 @@
                 return `${day} ${month} ${year}`;
             };
 
-            // --- PANTALLA DE LOGIN ---
             if (isAuthLoading) {
                 return <div className="min-h-screen w-full flex items-center justify-center bg-slate-900 text-white"><Loader2 className="animate-spin" size={32}/></div>;
             }
